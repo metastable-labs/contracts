@@ -18,6 +18,7 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
  * @notice BasedMigrateERC20 is adapted from OptimismMintableERC20 to be initialized using Cloning.
  *         Source code for OptimismMintableERC20:
  *         https://github.com/ethereum-optimism/optimism/blob/master/packages/contracts-bedrock/contracts/universal/OptimismMintableERC20.sol
+ * @author @encrypted8532 @njokuScript
  */
 contract BasedMigrateERC20 is Initializable, ERC20Upgradeable, IOptimismMintableERC20, ILegacyMintableERC20 {
     /**

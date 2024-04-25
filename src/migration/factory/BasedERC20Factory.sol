@@ -14,6 +14,7 @@ import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 /**
  * @title BasedERC20Factory
  * @notice Factory contract for creating and deploying BasedMigrateERC20 tokens.
+ * @author @encrypted8532 @njokuScript
  */
 contract BasedERC20Factory {
     /**
