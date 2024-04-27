@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "../src/migration/BasedMigrateERC20.sol";
-import "../src/migration/factory/BasedERC20Factory.sol";
+import "../src/migration/SuperMigrateERC20.sol";
+import "../src/migration/factory/SuperERC20Factory.sol";
 import {Script} from "forge-std/Script.sol";
 
 contract DeployMigrationScript is Script {
@@ -13,11 +13,11 @@ contract DeployMigrationScript is Script {
 
         vm.startBroadcast(privateKey);
         // deploy implementation
-        implementation = address(new BasedMigrateERC20());
+        implementation = address(new SuperMigrateERC20());
 
         // deploy factory
         factory = address(
-            new BasedERC20Factory(address(implementation), L2BridgeAddress)
+            new SuperERC20Factory(address(implementation), L2BridgeAddress)
         );
 
         vm.stopBroadcast();

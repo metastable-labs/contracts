@@ -1,11 +1,11 @@
 pragma solidity 0.8.20;
 
-import {BasedERC20Base, BasedMigrateERC20} from "../base/BasedERC20Base.base.sol";
+import {SuperERC20Base, SuperMigrateERC20} from "../base/SuperERC20Base.base.sol";
 import {IERC165} from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
 import {IERC721} from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import {ILegacyMintableERC20, IOptimismMintableERC20} from "../../src/migration/interface/IOptimismMintableERC20.sol";
 
-contract BasedERC20Test is BasedERC20Base {
+contract SuperERC20Test is SuperERC20Base {
     function test_revert_cannotInitializeImplementation() public {
         vm.expectRevert();
         implementation.initialize(bridge, address(remoteToken), tokenName, tokenSymbol, tokenDecimal);
@@ -55,7 +55,7 @@ contract BasedERC20Test is BasedERC20Base {
         assertEq(clone.l2Bridge(), address(0));
     }
 
-    function test_revert_mintFromNonBridge() public initializeBasedERC20 {
+    function test_revert_mintFromNonBridge() public initializeSuperERC20 {
         // prepare args
         address to = makeAddr("to");
         uint256 amount = 100;
@@ -66,7 +66,7 @@ contract BasedERC20Test is BasedERC20Base {
         clone.mint(to, amount);
     }
 
-    function test_mintFromBridge() public initializeBasedERC20 {
+    function test_mintFromBridge() public initializeSuperERC20 {
         // prepare args
         address to = makeAddr("to");
         uint256 amount = 100;
@@ -78,7 +78,7 @@ contract BasedERC20Test is BasedERC20Base {
         assertEq(clone.totalSupply(), amount);
     }
 
-    function test_fuzz_mintFromBridge(address to, uint256 amount) public initializeBasedERC20 {
+    function test_fuzz_mintFromBridge(address to, uint256 amount) public initializeSuperERC20 {
         // prepare args
         // ERC20 natively will nevert mint tokens to address(0);
         vm.assume(to != address(0));
@@ -90,7 +90,7 @@ contract BasedERC20Test is BasedERC20Base {
         assertEq(clone.totalSupply(), amount);
     }
 
-    function test_revert_burnFromNonBridge() public initializeBasedERC20 {
+    function test_revert_burnFromNonBridge() public initializeSuperERC20 {
         // prepare args
         address to = makeAddr("to");
         uint256 amount = 100;
@@ -105,7 +105,7 @@ contract BasedERC20Test is BasedERC20Base {
         clone.burn(to, amount);
     }
 
-    function test_burnFromBridge() public initializeBasedERC20 {
+    function test_burnFromBridge() public initializeSuperERC20 {
         // prepare args
         address to = makeAddr("to");
         uint256 amount = 100;
@@ -125,7 +125,7 @@ contract BasedERC20Test is BasedERC20Base {
 
     function test_fuzz_burnFromBridge(address from, uint256 mintAmount, uint256 burnAmount)
         public
-        initializeBasedERC20
+        initializeSuperERC20
     {
         // prepare args
         // ERC20 natively will nevert mint tokens to address(0);
@@ -145,7 +145,7 @@ contract BasedERC20Test is BasedERC20Base {
         assertEq(clone.totalSupply(), mintAmount - burnAmount);
     }
 
-    function test_revert_burnFromAccountWithNoToken() public initializeBasedERC20 {
+    function test_revert_burnFromAccountWithNoToken() public initializeSuperERC20 {
         // prepare args
         address to = makeAddr("to");
         uint256 amount = 100;
@@ -156,7 +156,7 @@ contract BasedERC20Test is BasedERC20Base {
         clone.burn(to, amount);
     }
 
-    function test_revert_burnMoreThanBalance() public initializeBasedERC20 {
+    function test_revert_burnMoreThanBalance() public initializeSuperERC20 {
         // prepare args
         address to = makeAddr("to");
         uint256 amount = 100;
@@ -175,7 +175,7 @@ contract BasedERC20Test is BasedERC20Base {
         assertEq(clone.totalSupply(), amount);
     }
 
-    function test_supportsERC165Interface() public initializeBasedERC20 {
+    function test_supportsERC165Interface() public initializeSuperERC20 {
         assertEq(clone.supportsInterface(type(IERC165).interfaceId), true);
         assertEq(clone.supportsInterface(type(ILegacyMintableERC20).interfaceId), true);
         assertEq(clone.supportsInterface(type(IOptimismMintableERC20).interfaceId), true);

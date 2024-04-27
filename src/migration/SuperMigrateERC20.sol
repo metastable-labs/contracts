@@ -14,13 +14,13 @@ import {ILegacyMintableERC20, IOptimismMintableERC20} from "./interface/IOptimis
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 /**
- * @title BasedMigrateERC20
- * @notice BasedMigrateERC20 is adapted from OptimismMintableERC20 to be initialized using Cloning.
+ * @title SuperMigrateERC20
+ * @notice SuperMigrateERC20 is adapted from OptimismMintableERC20 to be initialized using Cloning.
  *         Source code for OptimismMintableERC20:
  *         https://github.com/ethereum-optimism/optimism/blob/master/packages/contracts-bedrock/contracts/universal/OptimismMintableERC20.sol
  * @author @encrypted8532 @njokuScript
  */
-contract BasedMigrateERC20 is Initializable, ERC20Upgradeable, IOptimismMintableERC20, ILegacyMintableERC20 {
+contract SuperMigrateERC20 is Initializable, ERC20Upgradeable, IOptimismMintableERC20, ILegacyMintableERC20 {
     /**
      * @dev Stores the version of the contract like Semantic Versioning (Semver),
      * and fulfills the same requirements for version tracking.
