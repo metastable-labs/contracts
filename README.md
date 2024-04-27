@@ -1,4 +1,4 @@
-## SuperMigrate
+## Supermigrate
 
 ## Deployments
 
