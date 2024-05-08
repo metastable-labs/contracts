@@ -13,4 +13,4 @@ export RPC_URL=$MODE_RPC_URL
 
 read -p "Press enter to begin the deployment..."
 
-forge script script/deploy-migration.s.sol:DeployMigrationScript --rpc-url $RPC_URL --broadcast -vvvv --private-key $PRIVATE_KEY --verify --verifier blockscout --delay 15
+forge script script/deploy-migration.s.sol:DeployMigrationScript --rpc-url $RPC_URL --broadcast -vvvv --private-key $PRIVATE_KEY --verify --verifier-url 'https://api.routescan.io/v2/network/mainnet/evm/34443/etherscan' --etherscan-api-key "verifyContract" --delay 15
