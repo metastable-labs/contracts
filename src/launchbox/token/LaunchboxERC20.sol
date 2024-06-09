@@ -44,15 +44,17 @@ contract LaunchboxERC20 is Initializable, ERC20Upgradeable {
         string memory _name,
         string memory _symbol,
         uint8 _decimals,
-        uint256 _tokenSupply,
+        uint256 _tokenSupplyAfterFee,
         uint256 _platformFee,
         address _exchangeContract,
         address _platformFeeAddress
     ) external initializer {
         __ERC20_init(_name, _symbol);
         DECIMALS = _decimals;
-        _mint(_exchangeContract, _tokenSupply);
+        // send platform fee to platform fee address
         _mint(_platformFeeAddress, _platformFee);
+        // send the balance to the exchange contract
+        _mint(_exchangeContract, _tokenSupplyAfterFee);
     }
 
     /// @dev Returns the number of decimals used to get its user representation.

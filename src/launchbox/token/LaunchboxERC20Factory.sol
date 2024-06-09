@@ -21,15 +21,16 @@ contract LaunchboxERC20Factory is ILaunchboxERC20Factory, Ownable {
      */
     uint256 public platformFeePercentage;
 
+    address payable platformFeeAddress;
+
     uint256 tokenId; // auto incremental
 
     uint256 private constant PRECISION_DEGREE = 18;
     uint256 private constant MAX_TOKEN_DECIMALS = 18;
     uint256 private constant PRECISION = 1 * (10 ** PRECISION_DEGREE);
-    uint256 private constant HUNDRED_PERCENTAGE =
-        100 * (10 ** PRECISION_DEGREE);
+    uint256 private constant HUNDRED_PERCENTAGE = 100 * (10 ** PRECISION_DEGREE);
 
-    TokenInfo[] public token; // list of tokens
+    TokenInfo[] public tokens; // list of tokens
     mapping(uint256 => TokenInfo) public tokenMapping; // ID to token data
     mapping(uint256 => address) public ownerMapping; // TokenData ID => Owner
 
@@ -58,28 +59,35 @@ contract LaunchboxERC20Factory is ILaunchboxERC20Factory, Ownable {
      * @notice Deploys a new LaunchboxERC20 token clone with specified parameters.
      * @param _name Name for the new token.
      * @param _symbol Symbol for the new token.
-     * @return Address of the newly deployed LaunchboxERC20 token.
      * @param _decimals    ERC20 decimals
+     * @return Address of the newly deployed LaunchboxERC20 token and  newly deployed exchange contract.
      */
-    function createToken(
-        string memory _name,
-        string memory _symbol,
-        uint8 _decimals
-    ) external returns (address) {
+    function createToken(string memory _name, string memory _symbol, uint8 _decimals, uint256 _totalSupply)
+        external
+        returns (address, address)
+    {
         // calculate platform fee
-        // deploy bonding contract
+        uint256 feeFromTokenSupply = _calculatePlatformFee(_totalSupply);
+        uint256 tokenSupplyAfterFee = _totalSupply - feeFromTokenSupply;
+        // deploy exchange contract
+        address exchangeContract = 0xF175520C52418dfE19C8098071a252da48Cd1C19;
         // deploy clone
-        // address newSuperERC20 = Clones.clone(SuperMigrateErc20);
+        address newLaunchboxERC20 = Clones.clone(launchboxERC20Implementation);
         // initialize clone
-        // SuperMigrateERC20(newSuperERC20).initialize(BRIDGE, _remoteToken, _name, _symbol, _decimals);
-        // emit SuperMigrateERC20Created(_remoteToken, newSuperERC20, msg.sender);
-        // return
+        LaunchboxERC20(newLaunchboxERC20).initialize(
+            _name, _symbol, _decimals, tokenSupplyAfterFee, feeFromTokenSupply, exchangeContract, platformFeeAddress
+        );
+        _addTokenstoMapping(msg.sender, newLaunchboxERC20, exchangeContract);
+        emit LaunchboxERC20Created(msg.sender, newLaunchboxERC20);
+        return (newLaunchboxERC20, exchangeContract);
     }
 
-    function modifyPlatformFeePercentage(
-        uint256 percentage
-    ) external onlyOwner {
-        platformFeePercentage = percentage;
+    function modifyPlatformFeePercentage(uint256 _percentage) external onlyOwner {
+        platformFeePercentage = _percentage;
+    }
+
+    function modifyPlatformFeeAddressRecipient(address _newFeeAddress) external onlyOwner {
+        platformFeeAddress = payable(_newFeeAddress);
     }
 
     // getter methods
@@ -87,15 +95,49 @@ contract LaunchboxERC20Factory is ILaunchboxERC20Factory, Ownable {
         return tokenId;
     }
 
-    function getTokenByID(
-        uint256 _tokenId
-    ) external view returns (TokenInfo memory) {
+    function getTokenByID(uint256 _tokenId) external view returns (TokenInfo memory) {
         TokenInfo memory _token = tokenMapping[_tokenId];
 
         return _token;
     }
 
     function getTokens() external view returns (TokenInfo[] memory) {
-        return token;
+        return tokens;
+    }
+
+    function getTokensbyDeployer(address _deployer) external view returns (TokenInfo[] memory) {
+        // count the number of tokens that a particular address has deployed
+        uint256 tokenCount = 0;
+        for (uint256 i = 0; i < tokens.length; i++) {
+            if (tokens[i].deployer == _deployer) {
+                tokenCount++;
+            }
+        }
+
+        // Create an array to hold the tokens deployed by the specified address
+        TokenInfo[] memory result = new TokenInfo[](tokenCount);
+        uint256 index = 0;
+        for (uint256 i = 0; i < tokens.length; i++) {
+            if (tokens[i].deployer == _deployer) {
+                result[index] = tokens[i];
+                index++;
+            }
+        }
+
+        return result;
+    }
+
+    // internal methods
+    function _addTokenstoMapping(address _tokenAddress, address _deployer, address _exchangeContract) internal {
+        tokens.push(TokenInfo(_tokenAddress, _deployer, _exchangeContract));
+        uint256 newTokenId = tokens.length - 1;
+        tokenMapping[newTokenId] = tokens[newTokenId];
+        ownerMapping[newTokenId] = _deployer;
+        tokenId++;
+    }
+
+    function _calculatePlatformFee(uint256 _totalSupply) internal returns (uint256) {
+        require(platformFeePercentage <= HUNDRED_PERCENTAGE, "Percentage cannot exceed 100%");
+        return (_totalSupply * platformFeePercentage) / HUNDRED_PERCENTAGE;
     }
 }

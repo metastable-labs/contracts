@@ -13,7 +13,7 @@ interface ILaunchboxERC20Factory {
      * @dev Emitted when a new LaunchboxERC20 token is created.
      * @param deployer Address of the deployer.
      */
-    event LaunchboxERC20Created(address deployer);
+    event LaunchboxERC20Created(address deployer, address deployedTokenAddress);
 
     // ------------------------------------------------ CUSTOM TYPES ------------------------------------------------
 
