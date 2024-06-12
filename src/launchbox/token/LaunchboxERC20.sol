@@ -35,7 +35,7 @@ contract LaunchboxERC20 is Initializable, ERC20Upgradeable {
      * @param _name        ERC20 name.
      * @param _symbol      ERC20 symbol.
      * @param _decimals      ERC20 Decimal.
-     * @param _tokenSupply    Amount of Tokens to be minted to the bonding curve contract minus platform fees.
+     * @param _tokenSupplyAfterFee    Amount of Tokens to be minted to the bonding curve contract minus platform fees.
      * @param _platformFee    Amount of tokens to be sent to the LaunchboxPlatform fee collector - usually a % of token total supply
      * @param _exchangeContract    Contract of the bonding curve functions responsible for facilitating the buying and selling of the tokens
      * @param _platformFeeAddress    Address receiving the % of the token supply

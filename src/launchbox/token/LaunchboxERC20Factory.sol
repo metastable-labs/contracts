@@ -64,7 +64,7 @@ contract LaunchboxERC20Factory is ILaunchboxERC20Factory, Ownable {
      */
     function createToken(string memory _name, string memory _symbol, uint8 _decimals, uint256 _totalSupply)
         external
-        returns (address, address)
+        returns (address)
     {
         // calculate platform fee
         uint256 feeFromTokenSupply = _calculatePlatformFee(_totalSupply);
@@ -78,8 +78,8 @@ contract LaunchboxERC20Factory is ILaunchboxERC20Factory, Ownable {
             _name, _symbol, _decimals, tokenSupplyAfterFee, feeFromTokenSupply, exchangeContract, platformFeeAddress
         );
         _addTokenstoMapping(msg.sender, newLaunchboxERC20, exchangeContract);
-        emit LaunchboxERC20Created(msg.sender, newLaunchboxERC20);
-        return (newLaunchboxERC20, exchangeContract);
+        emit LaunchboxERC20Created(msg.sender, newLaunchboxERC20, exchangeContract);
+        return newLaunchboxERC20;
     }
 
     function modifyPlatformFeePercentage(uint256 _percentage) external onlyOwner {

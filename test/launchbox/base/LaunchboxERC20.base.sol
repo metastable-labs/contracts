@@ -11,17 +11,18 @@ contract LaunchboxERC20Base is Test {
 
     // addresses
     address public bridge = makeAddr("bridge");
-    MockRemoteERC20 public remoteToken;
 
     string public tokenName = "Launchbox";
     string public tokenSymbol = "Launchbox";
     uint8 tokenDecimal = 18;
+    uint256 totalSupply = 10_000_000_000;
+    uint256 tokenSupplyAfterFee = 9_000_000_000;
+    uint256 feeFromTokenSupply = 1_000_000_000;
     string public currentVersion = "1.0.0";
+    address exchangeContract = 0xF175520C52418dfE19C8098071a252da48Cd1C19;
+    address platformFeeAddress = 0xF175520C52418dfE19C8098071a252da48Cd1C19;
 
     function setUp() public {
-        // deploy remote token
-        remoteToken = new MockRemoteERC20();
-
         // deploy implementation
         implementation = new LaunchboxERC20();
 
@@ -30,7 +31,15 @@ contract LaunchboxERC20Base is Test {
     }
 
     modifier initializeSuperERC20() {
-        clone.initialize();
+        clone.initialize(
+            tokenName,
+            tokenSymbol,
+            tokenDecimal,
+            tokenSupplyAfterFee,
+            feeFromTokenSupply,
+            exchangeContract,
+            platformFeeAddress
+        );
         _;
     }
 }

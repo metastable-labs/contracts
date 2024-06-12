@@ -1,8 +1,8 @@
 pragma solidity 0.8.20;
 
 import {Test} from "forge-std/Test.sol";
-import {SuperMigrateERC20} from "../../src/migration/SuperMigrateERC20.sol";
-import {MockRemoteERC20} from "../../src/migration/mocks/MockRemoteERC20.sol";
+import {SuperMigrateERC20} from "../../../src/migration/SuperMigrateERC20.sol";
+import {MockRemoteERC20} from "../../../src/migration/mocks/MockRemoteERC20.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 
 contract SuperERC20Base is Test {
@@ -31,7 +31,13 @@ contract SuperERC20Base is Test {
     }
 
     modifier initializeSuperERC20() {
-        clone.initialize(bridge, address(remoteToken), tokenName, tokenSymbol, tokenDecimal);
+        clone.initialize(
+            bridge,
+            address(remoteToken),
+            tokenName,
+            tokenSymbol,
+            tokenDecimal
+        );
         _;
     }
 }
