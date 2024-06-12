@@ -43,9 +43,9 @@ function is_allowed_network {
 # Validate network and run the corresponding script
 if is_allowed_network "$network"; then
     script_name="deploy.$network.sh"
-    if [ -f "shell/$script_name" ]; then
+    if [ -f "shell/launchbox/$script_name" ]; then
         echo "Running script for network: $network"
-        "./shell/$script_name"
+        "./shell/launchbox/$script_name"
     else
         echo "Error: Script file $script_name does not exist."
         exit 1
