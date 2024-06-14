@@ -1,19 +1,22 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.20;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
+import {IRouter} from "@aerodrome/contracts/contracts/interfaces/IRouter.sol";
+import {BancorBondingCurve} from "./BancorBondingCurve.sol";
 
-contract LaunchboxExchange {
+contract LaunchboxExchange is BancorBondingCurve {
     IERC20 public token;
     uint256 public maxSupply;
     uint256 public marketCapThreshold;
+    uint256 public launchboxErc20BalanceReceived;
     uint256 public launchboxErc20Balance;
     uint256 public ethBalance;
+    uint32 public reserveRatio;
 
     bool public saleActive = false;
 
-    IUniswapV2Router02 public uniswapRouter;
+    IRouter public aerodromeRouter;
 
     event BondingEnded(uint256 totalEth, uint256 totalTokens);
 
@@ -21,14 +24,17 @@ contract LaunchboxExchange {
     error PurchaseExceedsSupply();
     error NotEnoughETH();
 
-    function initialize(address _tokenAddress, uint256 _maxSupply, uint256 _marketCapThreshold, address _uniswapRouter) external {
-        uniswapRouter = IUniswapV2Router02(_uniswapRouter);
+    function initialize(address _tokenAddress, uint256 _maxSupply, uint256 _marketCapThreshold, address _aerodromeRouter, address _initialPurchaseReceiver) external payable {
+        aerodromeRouter = IRouter(_aerodromeRouter);
         token = IERC20(_tokenAddress);
         maxSupply = _maxSupply;
         marketCapThreshold = _marketCapThreshold;
         launchboxErc20Balance = token.balanceOf(address(this));
+        launchboxErc20BalanceReceived = launchboxErc20Balance;
+        reserveRatio = 100000; // 10%
         ethBalance = address(this).balance;
         saleActive = true;
+        _initialBuy(_initialPurchaseReceiver);
     }
 
     function buyTokens() public payable {
@@ -50,16 +56,33 @@ contract LaunchboxExchange {
         }
     }
 
+    function _initialBuy(address _initialReceiver) internal {
+        uint256 tokensToMint = _convertToPurchaseTokens(msg.value);
+        if(tokensToMint > launchboxErc20Balance) {
+            revert PurchaseExceedsSupply();
+        }
+
+        launchboxErc20Balance -= tokensToMint;
+        ethBalance += msg.value;
+        token.transfer(_initialReceiver, tokensToMint);
+
+        if (_calculateMarketCap() >= marketCapThreshold) {
+            endBonding();
+        }
+    }
+
     function _calculateMarketCap() internal view returns(uint256) {
         return ethBalance;
     }
 
     function _convertToPurchaseTokens(uint256 ethAmount) internal view returns(uint256 tokenAmount) {
-        return ethAmount;
+        uint256 soldSupply = launchboxErc20BalanceReceived - launchboxErc20Balance;
+        return calculatePurchaseReturn(soldSupply, ethBalance, reserveRatio, ethAmount);
     }
 
     function _convertToSellTokens(uint256 tokenAmount) internal view returns(uint256 ethAmount) {
-        return tokenAmount;
+        uint256 soldSupply = launchboxErc20BalanceReceived - launchboxErc20Balance;
+        return calculateSaleReturn(soldSupply, ethBalance, reserveRatio, tokenAmount);
     }
 
     function sellTokens(uint256 tokenAmount) public {
@@ -84,11 +107,12 @@ contract LaunchboxExchange {
         uint256 totalEth = address(this).balance;
 
         // Approve Uniswap router to spend tokens
-        token.approve(address(uniswapRouter), totalTokens);
+        token.approve(address(aerodromeRouter), totalTokens);
 
         // Add liquidity to Uniswap
-        uniswapRouter.addLiquidityETH{value: totalEth}(
+        aerodromeRouter.addLiquidityETH{value: totalEth}(
             address(token),
+            false, // not stable pool
             totalTokens,
             0, // slippage is okay
             0, // slippage is okay
