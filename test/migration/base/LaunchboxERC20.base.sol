@@ -1,6 +1,5 @@
 pragma solidity ^0.8.20;
 
-
 import {Test, console} from "forge-std/Test.sol";
 import {LaunchboxFactory} from "../../src/launchbox/token/LaunchboxFactory.sol";
 import {LaunchboxERC20} from "../../src/launchbox/token/LaunchboxERC20.sol";

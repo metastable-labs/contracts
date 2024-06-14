@@ -13,9 +13,21 @@ contract LaunchboxERC20Unit is LaunchboxERC20Base {
     string public metadataUri = "ipfs://metadata";
     address public router = makeAddr("UniswapRouter");
     address public platformFeeReceiver = makeAddr("platformFeeReceiver");
+
     function test_initialize() public {
         assertEq(erc20.launchboxExchange(), address(0));
-        erc20.initialize(name, symbol, metadataUri, maxSupply, 1, marketCapThreshold, exchangeImplementation, platformFeeReceiver, router, address(this));
+        erc20.initialize(
+            name,
+            symbol,
+            metadataUri,
+            maxSupply,
+            1,
+            marketCapThreshold,
+            exchangeImplementation,
+            platformFeeReceiver,
+            router,
+            address(this)
+        );
         assertNotEq(erc20.launchboxExchange(), address(0));
         assertEq(erc20.name(), name);
         assertEq(erc20.symbol(), symbol);
@@ -31,17 +43,50 @@ contract LaunchboxERC20Unit is LaunchboxERC20Base {
 
     function test_revert_initializeWithEmptyMetadata() public {
         vm.expectRevert(LaunchboxERC20.MetadataEmpty.selector);
-        erc20.initialize(name, symbol, "", maxSupply, 0, marketCapThreshold, exchangeImplementation, address(0), router, address(this));
+        erc20.initialize(
+            name,
+            symbol,
+            "",
+            maxSupply,
+            0,
+            marketCapThreshold,
+            exchangeImplementation,
+            address(0),
+            router,
+            address(this)
+        );
     }
 
     function test_revert_initializeWithZeroMaxSupply() public {
         vm.expectRevert(LaunchboxERC20.CannotSellZeroTokens.selector);
-        
-        erc20.initialize(name, symbol, metadataUri, 0, 0, marketCapThreshold, exchangeImplementation, address(0), router, address(this));
+
+        erc20.initialize(
+            name,
+            symbol,
+            metadataUri,
+            0,
+            0,
+            marketCapThreshold,
+            exchangeImplementation,
+            address(0),
+            router,
+            address(this)
+        );
     }
 
     function test_revert_initializeWithNonZeroPlatformFeeAndZeroReceiver() public {
         vm.expectRevert(LaunchboxERC20.PlatformFeeReceiverEmpty.selector);
-        erc20.initialize(name, symbol, metadataUri, 100, 1, marketCapThreshold, exchangeImplementation, address(0), router, address(this));
+        erc20.initialize(
+            name,
+            symbol,
+            metadataUri,
+            100,
+            1,
+            marketCapThreshold,
+            exchangeImplementation,
+            address(0),
+            router,
+            address(this)
+        );
     }
 }

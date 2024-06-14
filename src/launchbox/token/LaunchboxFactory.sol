@@ -18,6 +18,12 @@ contract LaunchboxFactory is Ownable(msg.sender) {
      * @notice Percentage of token supply to charge as fee
      */
     uint256 public platformFeePercentage;
+    /**
+     * @notice Percentage of token supply that goes to the token creator for community incentives
+     */
+    uint256 public communityPercentage;
+
+    address payable communityTreasuryOwner;
 
     address payable platformFeeAddress;
 
@@ -25,42 +31,56 @@ contract LaunchboxFactory is Ownable(msg.sender) {
 
     uint256 private constant MAX_TOKEN_DECIMALS = 18;
     uint256 private constant HUNDRED_PERCENTAGE = 100 * 1e18;
-    
+
     error EmptyTokenImplementation();
     error EmptyLaunchboxExchangeImplementation();
-    error EmptyUniswapRouter();
+    error EmptyAerodromeRouter();
     error FeeGreaterThanHundred();
 
-    constructor(address _tokenImplementation, address _launchboxExchangeImplementation, address _router, uint256 _marketCapThreshold, uint256 _platformFeePercentage) {
-        if(_tokenImplementation == address(0)) revert EmptyTokenImplementation();
-        if(_launchboxExchangeImplementation == address(0)) revert EmptyLaunchboxExchangeImplementation();
-        if(_router == address(0)) revert EmptyUniswapRouter();
+    constructor(
+        address _tokenImplementation,
+        address _launchboxExchangeImplementation,
+        address _router,
+        uint256 _marketCapThreshold,
+        uint256 _platformFeePercentage,
+        uint256 _communityAllocPercentage
+    ) {
+        if (_tokenImplementation == address(0)) {
+            revert EmptyTokenImplementation();
+        }
+        if (_launchboxExchangeImplementation == address(0)) {
+            revert EmptyLaunchboxExchangeImplementation();
+        }
+        if (_router == address(0)) revert EmptyAerodromeRouter();
         if (_platformFeePercentage > HUNDRED_PERCENTAGE) {
             revert FeeGreaterThanHundred();
         }
         platformFeePercentage = _platformFeePercentage;
+        communityPercentage = _communityAllocPercentage;
         tokenImplementation = _tokenImplementation;
         launchboxExchangeImplementation = _launchboxExchangeImplementation;
         marketCapThreshold = _marketCapThreshold;
         router = _router;
     }
 
-    function deployToken(
-        string memory name,
-        string memory symbol,
-        string memory metadataURI,
-        uint256 maxSupply
-    ) external payable returns(address, address) {
+    function deployToken(string memory name, string memory symbol, string memory metadataURI, uint256 maxSupply)
+        external
+        payable
+        returns (address, address)
+    {
         // calculate platform fee
         uint256 feeFromTokenSupply = _calculatePlatformFee(maxSupply);
+        // calculate community percentage
+        uint256 communityAllocFromTokenSupply = _calculatePlatformFee(maxSupply);
         address tokenClone = Clones.clone(tokenImplementation);
 
-        address curveClone = LaunchboxERC20(tokenClone).initialize{value: msg.value}(
+        address curveClone = LaunchboxERC20(tokenClone).initialize(
             name,
             symbol,
             metadataURI,
-            maxSupply - feeFromTokenSupply,
+            maxSupply - (feeFromTokenSupply + communityAllocFromTokenSupply),
             feeFromTokenSupply,
+            communityAllocFromTokenSupply,
             marketCapThreshold,
             launchboxExchangeImplementation,
             platformFeeAddress,
@@ -77,6 +97,18 @@ contract LaunchboxFactory is Ownable(msg.sender) {
      */
     function renounceOwnership() public override onlyOwner {
         revert();
+    }
+
+    function setPlatformFeePercentage(uint256 _platformFeePercentage) public onlyOwner {
+        platformFeePercentage = _platformFeePercentage;
+    }
+
+    function setCommunityPerecentage(uint256 _communityPercentage) public onlyOwner {
+        communityPercentage = _communityPercentage;
+    }
+
+    function setPlatformFeeAddress(address payable _platformFeeAddress) public onlyOwner {
+        platformFeeAddress = _platformFeeAddress;
     }
 
     function setMarketCapThreshold(uint256 _newMarketCapThreshold) public onlyOwner {

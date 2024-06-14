@@ -17,6 +17,7 @@ contract LaunchboxFactoryBase is Test {
     function setUp() public {
         erc20Impl = new LaunchboxERC20();
         curveImpl = new LaunchboxExchange();
-        launchpad = new LaunchboxFactory(address(erc20Impl), address(curveImpl), mockUniswapRouter, platfromFeePercentage, marketCapThreshold);
+        launchpad =
+        new LaunchboxFactory(address(erc20Impl), address(curveImpl), mockUniswapRouter, platfromFeePercentage, marketCapThreshold);
     }
 }

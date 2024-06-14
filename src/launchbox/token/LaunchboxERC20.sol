@@ -23,11 +23,12 @@ contract LaunchboxERC20 is ERC20Upgradeable {
         string memory _metadataURI,
         uint256 _tokenSupplyAfterFee,
         uint256 _platformFee,
+        uint256 _communitySupply,
         uint256 _marketCapThreshold,
         address _launchboxExchangeImplementation,
         address _platformFeeAddress,
         address _router,
-        address _initialPurchaseReceiver
+        address _communityTreasuryOwner
     ) external payable initializer returns (address) {
         __ERC20_init(_name, _symbol);
         if (bytes(_metadataURI).length == 0) {
@@ -39,9 +40,7 @@ contract LaunchboxERC20 is ERC20Upgradeable {
 
         metadataURI = _metadataURI;
 
-        launchboxExchange = payable(
-            Clones.clone(_launchboxExchangeImplementation)
-        );
+        launchboxExchange = payable(Clones.clone(_launchboxExchangeImplementation));
         if (_platformFee != 0) {
             if (_platformFeeAddress == address(0)) {
                 revert PlatformFeeReceiverEmpty();
@@ -49,14 +48,11 @@ contract LaunchboxERC20 is ERC20Upgradeable {
             // send platform fee to platform fee address
             _mint(_platformFeeAddress, _platformFee);
         }
+        _mint(_communityTreasuryOwner, _communitySupply);
         // send the balance to the exchange contract
         _mint(launchboxExchange, _tokenSupplyAfterFee);
-        LaunchboxExchange(launchboxExchange).initialize{value: msg.value}(
-            address(this),
-            _tokenSupplyAfterFee,
-            _marketCapThreshold,
-            _router,
-            _initialPurchaseReceiver
+        LaunchboxExchange(launchboxExchange).initialize(
+            address(this), _tokenSupplyAfterFee, _marketCapThreshold, _router
         );
         return launchboxExchange;
     }

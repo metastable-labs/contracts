@@ -31,13 +31,7 @@ contract SuperERC20Base is Test {
     }
 
     modifier initializeSuperERC20() {
-        clone.initialize(
-            bridge,
-            address(remoteToken),
-            tokenName,
-            tokenSymbol,
-            tokenDecimal
-        );
+        clone.initialize(bridge, address(remoteToken), tokenName, tokenSymbol, tokenDecimal);
         _;
     }
 }

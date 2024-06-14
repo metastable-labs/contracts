@@ -28,8 +28,7 @@ contract LaunchboxExchange is BancorBondingCurve {
         address _tokenAddress,
         uint256 _maxSupply,
         uint256 _marketCapThreshold,
-        address _aerodromeRouter,
-        address _initialPurchaseReceiver
+        address _aerodromeRouter
     ) external payable {
         aerodromeRouter = IRouter(_aerodromeRouter);
         token = IERC20(_tokenAddress);
@@ -37,10 +36,9 @@ contract LaunchboxExchange is BancorBondingCurve {
         marketCapThreshold = _marketCapThreshold;
         launchboxErc20Balance = token.balanceOf(address(this));
         launchboxErc20BalanceReceived = launchboxErc20Balance;
-        reserveRatio = 100000; // 10%
+        reserveRatio = 100_000; // 10%
         ethBalance = address(this).balance;
         saleActive = true;
-        _initialBuy(_initialPurchaseReceiver);
     }
 
     function buyTokens() public payable {
@@ -81,32 +79,14 @@ contract LaunchboxExchange is BancorBondingCurve {
         return ethBalance;
     }
 
-    function _convertToPurchaseTokens(
-        uint256 ethAmount
-    ) internal view returns (uint256 tokenAmount) {
-        uint256 soldSupply = launchboxErc20BalanceReceived -
-            launchboxErc20Balance;
-        return
-            calculatePurchaseReturn(
-                soldSupply,
-                ethBalance,
-                reserveRatio,
-                ethAmount
-            );
+    function _convertToPurchaseTokens(uint256 ethAmount) internal view returns (uint256 tokenAmount) {
+        uint256 soldSupply = launchboxErc20BalanceReceived - launchboxErc20Balance;
+        return calculatePurchaseReturn(soldSupply, ethBalance, reserveRatio, ethAmount);
     }
 
-    function _convertToSellTokens(
-        uint256 tokenAmount
-    ) internal view returns (uint256 ethAmount) {
-        uint256 soldSupply = launchboxErc20BalanceReceived -
-            launchboxErc20Balance;
-        return
-            calculateSaleReturn(
-                soldSupply,
-                ethBalance,
-                reserveRatio,
-                tokenAmount
-            );
+    function _convertToSellTokens(uint256 tokenAmount) internal view returns (uint256 ethAmount) {
+        uint256 soldSupply = launchboxErc20BalanceReceived - launchboxErc20Balance;
+        return calculateSaleReturn(soldSupply, ethBalance, reserveRatio, tokenAmount);
     }
 
     function sellTokens(uint256 tokenAmount) public {
@@ -117,10 +97,7 @@ contract LaunchboxExchange is BancorBondingCurve {
         uint256 ethToReturn = _convertToSellTokens(tokenAmount); // simplistic example
         ethBalance -= ethToReturn;
         launchboxErc20Balance += tokenAmount;
-        require(
-            token.transferFrom(msg.sender, address(this), tokenAmount),
-            "Transfer failed"
-        );
+        require(token.transferFrom(msg.sender, address(this), tokenAmount), "Transfer failed");
         if (address(this).balance < ethToReturn) {
             revert NotEnoughETH();
         }
