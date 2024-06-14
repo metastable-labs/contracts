@@ -11,25 +11,45 @@ contract LaunchboxERC20 is ERC20Upgradeable {
 
     error MetadataEmpty();
     error CannotSellZeroTokens();
+    error PlatformFeeReceiverEmpty();
 
     constructor() {
         _disableInitializers();
     }
 
-    function initialize(string memory _name, string memory _symbol, uint256 _maxSupply, uint256 _marketCapThreshold, string memory _metadataURI, address _launchboxExchangeImplementation, address  _uniswapRouter) external initializer returns(address) {
+    function initialize(
+        string memory _name,
+        string memory _symbol,
+        string memory _metadataURI,
+        uint256 _tokenSupplyAfterFee,
+        uint256 _platformFee,
+        uint256 _marketCapThreshold,
+        address _launchboxExchangeImplementation,
+        address _platformFeeAddress,
+        address _router,
+        address _initialPurchaseReceiver
+    ) external payable initializer returns(address) {
         __ERC20_init(_name, _symbol);
         if(bytes(_metadataURI).length == 0) {
             revert MetadataEmpty();
         }
-        if(_maxSupply == 0) {
+        if(_tokenSupplyAfterFee == 0) {
             revert CannotSellZeroTokens();
         }
 
         metadataURI = _metadataURI;
 
         launchboxExchange = payable(Clones.clone(_launchboxExchangeImplementation));
-        _mint(launchboxExchange, _maxSupply);
-        LaunchboxExchange(launchboxExchange).initialize(address(this), _maxSupply, _marketCapThreshold, _uniswapRouter);
+        if(_platformFee != 0) {
+            if(_platformFeeAddress == address(0)) {
+                revert PlatformFeeReceiverEmpty();
+            }
+            // send platform fee to platform fee address
+            _mint(_platformFeeAddress, _platformFee);
+        }
+        // send the balance to the exchange contract
+        _mint(launchboxExchange, _tokenSupplyAfterFee);
+        LaunchboxExchange(launchboxExchange).initialize{value: msg.value}(address(this), _tokenSupplyAfterFee, _marketCapThreshold, _router, _initialPurchaseReceiver);
         return launchboxExchange;
     }
 }
