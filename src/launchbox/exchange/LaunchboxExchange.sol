@@ -60,21 +60,6 @@ contract LaunchboxExchange is BancorBondingCurve {
         }
     }
 
-    function _initialBuy(address _initialReceiver) internal {
-        uint256 tokensToMint = _convertToPurchaseTokens(msg.value);
-        if (tokensToMint > launchboxErc20Balance) {
-            revert PurchaseExceedsSupply();
-        }
-
-        launchboxErc20Balance -= tokensToMint;
-        ethBalance += msg.value;
-        token.transfer(_initialReceiver, tokensToMint);
-
-        if (_calculateMarketCap() >= marketCapThreshold) {
-            endBonding();
-        }
-    }
-
     function _calculateMarketCap() internal view returns (uint256) {
         return ethBalance;
     }
@@ -87,6 +72,14 @@ contract LaunchboxExchange is BancorBondingCurve {
     function _convertToSellTokens(uint256 tokenAmount) internal view returns (uint256 ethAmount) {
         uint256 soldSupply = launchboxErc20BalanceReceived - launchboxErc20Balance;
         return calculateSaleReturn(soldSupply, ethBalance, reserveRatio, tokenAmount);
+    }
+
+    function calculateMarketCap() external view returns (uint256) {
+        return _calculateMarketCap();
+    }
+
+    function getTokenPriceinETH() external view returns (uint256 ethAmount) {
+        return _convertToSellTokens(1 * 1e18);
     }
 
     function sellTokens(uint256 tokenAmount) public {
