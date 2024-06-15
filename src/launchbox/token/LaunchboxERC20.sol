@@ -9,6 +9,20 @@ contract LaunchboxERC20 is ERC20Upgradeable {
     string public metadataURI;
     address payable public launchboxExchange;
 
+    struct InitializeParams {
+        string _name;
+        string _symbol;
+        string _metadataURI;
+        uint256 _tokenSupplyAfterFee;
+        uint256 _platformFee;
+        uint256 _communitySupply;
+        uint256 _marketCapThreshold;
+        address _launchboxExchangeImplementation;
+        address _platformFeeAddress;
+        address _router;
+        address _communityTreasuryOwner;
+    }
+
     error MetadataEmpty();
     error CannotSellZeroTokens();
     error PlatformFeeReceiverEmpty();
@@ -18,41 +32,31 @@ contract LaunchboxERC20 is ERC20Upgradeable {
     }
 
     function initialize(
-        string memory _name,
-        string memory _symbol,
-        string memory _metadataURI,
-        uint256 _tokenSupplyAfterFee,
-        uint256 _platformFee,
-        uint256 _communitySupply,
-        uint256 _marketCapThreshold,
-        address _launchboxExchangeImplementation,
-        address _platformFeeAddress,
-        address _router,
-        address _communityTreasuryOwner
+        InitializeParams memory params
     ) external payable initializer returns (address) {
-        __ERC20_init(_name, _symbol);
-        if (bytes(_metadataURI).length == 0) {
+        __ERC20_init(params._name, params._symbol);
+        if (bytes(params._metadataURI).length == 0) {
             revert MetadataEmpty();
         }
-        if (_tokenSupplyAfterFee == 0) {
+        if (params._tokenSupplyAfterFee == 0) {
             revert CannotSellZeroTokens();
         }
 
-        metadataURI = _metadataURI;
+        metadataURI = params._metadataURI;
 
-        launchboxExchange = payable(Clones.clone(_launchboxExchangeImplementation));
-        if (_platformFee != 0) {
-            if (_platformFeeAddress == address(0)) {
+        launchboxExchange = payable(Clones.clone(params._launchboxExchangeImplementation));
+        if (params._platformFee != 0) {
+            if (params._platformFeeAddress == address(0)) {
                 revert PlatformFeeReceiverEmpty();
             }
             // send platform fee to platform fee address
-            _mint(_platformFeeAddress, _platformFee);
+            _mint(params._platformFeeAddress, params._platformFee);
         }
-        _mint(_communityTreasuryOwner, _communitySupply);
+        _mint(params._communityTreasuryOwner, params._communitySupply);
         // send the balance to the exchange contract
-        _mint(launchboxExchange, _tokenSupplyAfterFee);
+        _mint(launchboxExchange, params._tokenSupplyAfterFee);
         LaunchboxExchange(launchboxExchange).initialize(
-            address(this), _tokenSupplyAfterFee, _marketCapThreshold, _router
+            address(this), params._tokenSupplyAfterFee, params._marketCapThreshold, params._router
         );
         return launchboxExchange;
     }

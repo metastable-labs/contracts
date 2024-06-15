@@ -36,11 +36,13 @@ contract LaunchboxFactory is Ownable(msg.sender) {
     error EmptyLaunchboxExchangeImplementation();
     error EmptyAerodromeRouter();
     error FeeGreaterThanHundred();
+    error EmptyPlatformFeeReceiver();
 
     constructor(
         address _tokenImplementation,
         address _launchboxExchangeImplementation,
         address _router,
+        address _platformFeeReceiver,
         uint256 _marketCapThreshold,
         uint256 _platformFeePercentage,
         uint256 _communityAllocPercentage
@@ -55,6 +57,8 @@ contract LaunchboxFactory is Ownable(msg.sender) {
         if (_platformFeePercentage > HUNDRED_PERCENTAGE) {
             revert FeeGreaterThanHundred();
         }
+        if(_platformFeeReceiver == address(0)) revert EmptyPlatformFeeReceiver();
+        platformFeeAddress = payable(_platformFeeReceiver);
         platformFeePercentage = _platformFeePercentage;
         communityPercentage = _communityAllocPercentage;
         tokenImplementation = _tokenImplementation;
@@ -71,10 +75,10 @@ contract LaunchboxFactory is Ownable(msg.sender) {
         // calculate platform fee
         uint256 feeFromTokenSupply = _calculatePlatformFee(maxSupply);
         // calculate community percentage
-        uint256 communityAllocFromTokenSupply = _calculatePlatformFee(maxSupply);
+        uint256 communityAllocFromTokenSupply = _calculateCommunityFee(maxSupply);
         address tokenClone = Clones.clone(tokenImplementation);
 
-        address curveClone = LaunchboxERC20(tokenClone).initialize(
+        LaunchboxERC20.InitializeParams memory params = LaunchboxERC20.InitializeParams(
             name,
             symbol,
             metadataURI,
@@ -85,8 +89,9 @@ contract LaunchboxFactory is Ownable(msg.sender) {
             launchboxExchangeImplementation,
             platformFeeAddress,
             router,
-            msg.sender
-        );
+            msg.sender);
+
+        address curveClone = LaunchboxERC20(tokenClone).initialize(params);
 
         emit TokenDeployed(tokenClone, curveClone, msg.sender);
         return (tokenClone, curveClone);
@@ -117,5 +122,9 @@ contract LaunchboxFactory is Ownable(msg.sender) {
 
     function _calculatePlatformFee(uint256 _totalSupply) internal returns (uint256) {
         return (_totalSupply * platformFeePercentage) / HUNDRED_PERCENTAGE;
+    }
+
+    function _calculateCommunityFee(uint256 _totalSupply) internal returns (uint256) {
+        return (_totalSupply * communityPercentage) / HUNDRED_PERCENTAGE;
     }
 }

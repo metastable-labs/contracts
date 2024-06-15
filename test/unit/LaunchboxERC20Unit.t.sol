@@ -16,7 +16,7 @@ contract LaunchboxERC20Unit is LaunchboxERC20Base {
 
     function test_initialize() public {
         assertEq(erc20.launchboxExchange(), address(0));
-        erc20.initialize(
+        LaunchboxERC20.InitializeParams memory params = LaunchboxERC20.InitializeParams(
             name,
             symbol,
             metadataUri,
@@ -28,6 +28,9 @@ contract LaunchboxERC20Unit is LaunchboxERC20Base {
             platformFeeReceiver,
             router,
             address(this)
+        );
+        erc20.initialize(
+            params
         );
         assertNotEq(erc20.launchboxExchange(), address(0));
         assertEq(erc20.name(), name);
@@ -44,7 +47,7 @@ contract LaunchboxERC20Unit is LaunchboxERC20Base {
 
     function test_revert_initializeWithEmptyMetadata() public {
         vm.expectRevert(LaunchboxERC20.MetadataEmpty.selector);
-        erc20.initialize(
+        LaunchboxERC20.InitializeParams memory params = LaunchboxERC20.InitializeParams(
             name,
             symbol,
             "",
@@ -57,12 +60,15 @@ contract LaunchboxERC20Unit is LaunchboxERC20Base {
             router,
             address(this)
         );
+        erc20.initialize(
+            params
+        );
     }
 
     function test_revert_initializeWithZeroMaxSupply() public {
         vm.expectRevert(LaunchboxERC20.CannotSellZeroTokens.selector);
 
-        erc20.initialize(
+        LaunchboxERC20.InitializeParams memory params = LaunchboxERC20.InitializeParams(
             name,
             symbol,
             metadataUri,
@@ -75,11 +81,14 @@ contract LaunchboxERC20Unit is LaunchboxERC20Base {
             router,
             address(this)
         );
+        erc20.initialize(
+            params
+        );
     }
 
     function test_revert_initializeWithNonZeroPlatformFeeAndZeroReceiver() public {
         vm.expectRevert(LaunchboxERC20.PlatformFeeReceiverEmpty.selector);
-        erc20.initialize(
+        LaunchboxERC20.InitializeParams memory params = LaunchboxERC20.InitializeParams(
             name,
             symbol,
             metadataUri,
@@ -91,6 +100,9 @@ contract LaunchboxERC20Unit is LaunchboxERC20Base {
             address(0),
             router,
             address(this)
+        );
+        erc20.initialize(
+            params
         );
     }
 }

@@ -12,6 +12,7 @@ contract LaunchboxFactoryUnit is LaunchboxFactoryBase {
             address(0),
             address(curveImpl),
             mockAerodromeRouter,
+            platformFeeReceiver,
             marketCapThreshold,
             platfromFeePercentage,
             communityPercentage
@@ -24,6 +25,7 @@ contract LaunchboxFactoryUnit is LaunchboxFactoryBase {
             address(erc20Impl),
             address(0),
             mockAerodromeRouter,
+            platformFeeReceiver,
             marketCapThreshold,
             platfromFeePercentage,
             communityPercentage
@@ -36,6 +38,20 @@ contract LaunchboxFactoryUnit is LaunchboxFactoryBase {
             address(erc20Impl),
             address(curveImpl),
             address(0),
+            platformFeeReceiver,
+            marketCapThreshold,
+            platfromFeePercentage,
+            communityPercentage
+        );
+    }
+
+    function test_DeployWithInvalidPlatformFeeReceiver() public {
+        vm.expectRevert(LaunchboxFactory.EmptyPlatformFeeReceiver.selector);
+        LaunchboxFactory testLaunchpad = new LaunchboxFactory(
+            address(erc20Impl),
+            address(curveImpl),
+            mockAerodromeRouter,
+            address(0),
             marketCapThreshold,
             platfromFeePercentage,
             communityPercentage
@@ -47,7 +63,8 @@ contract LaunchboxFactoryUnit is LaunchboxFactoryBase {
         LaunchboxFactory testLaunchpad = new LaunchboxFactory(
             address(erc20Impl),
             address(curveImpl),
-            address(0),
+            mockAerodromeRouter,
+            platformFeeReceiver,
             marketCapThreshold,
             101 * 1e18,
             101 * 1e18
@@ -68,7 +85,9 @@ contract LaunchboxFactoryUnit is LaunchboxFactoryBase {
         (address tokenContract, address curveContract) = launchpad.deployToken("TEST", "TEST", "ipfs://", 100);
         assertEq(LaunchboxERC20(tokenContract).totalSupply(), 100);
         assertEq(LaunchboxExchange(payable(curveContract)).saleActive(), true);
-        assertEq(LaunchboxERC20(tokenContract).balanceOf(curveContract), 100);
+        assertEq(LaunchboxERC20(tokenContract).balanceOf(curveContract), 90);
+        assertEq(LaunchboxERC20(tokenContract).balanceOf(platformFeeReceiver), 1);
+        assertEq(LaunchboxERC20(tokenContract).balanceOf(address(this)), 9);
     }
 
     function test_revert_renounceOwnership() public {
