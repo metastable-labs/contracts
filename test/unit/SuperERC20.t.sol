@@ -5,7 +5,7 @@ import {IERC165} from "@openzeppelin/contracts-upgradeable/utils/introspection/E
 import {IERC721} from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import {
     ILegacyMintableERC20, IOptimismMintableERC20
-} from "../../../src/migration/interface/IOptimismMintableERC20.sol";
+} from "../../src/migration/interface/IOptimismMintableERC20.sol";
 
 contract SuperERC20Test is SuperERC20Base {
     function test_revert_cannotInitializeImplementation() public {
