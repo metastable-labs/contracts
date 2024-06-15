@@ -66,8 +66,8 @@ contract LaunchboxFactoryUnit is LaunchboxFactoryBase {
             mockAerodromeRouter,
             platformFeeReceiver,
             marketCapThreshold,
-            101 * 1e18,
-            101 * 1e18
+            100 * 1e18,
+            1 * 1e18
         );
     }
 

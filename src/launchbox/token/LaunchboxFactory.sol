@@ -54,7 +54,7 @@ contract LaunchboxFactory is Ownable(msg.sender) {
             revert EmptyLaunchboxExchangeImplementation();
         }
         if (_router == address(0)) revert EmptyAerodromeRouter();
-        if (_platformFeePercentage > HUNDRED_PERCENTAGE) {
+        if (_platformFeePercentage + _communityAllocPercentage > HUNDRED_PERCENTAGE) {
             revert FeeGreaterThanHundred();
         }
         if(_platformFeeReceiver == address(0)) revert EmptyPlatformFeeReceiver();
