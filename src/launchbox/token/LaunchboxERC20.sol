@@ -31,9 +31,7 @@ contract LaunchboxERC20 is ERC20Upgradeable {
         _disableInitializers();
     }
 
-    function initialize(
-        InitializeParams memory params
-    ) external payable initializer returns (address) {
+    function initialize(InitializeParams memory params) external payable initializer returns (address) {
         __ERC20_init(params._name, params._symbol);
         if (bytes(params._metadataURI).length == 0) {
             revert MetadataEmpty();

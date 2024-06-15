@@ -57,7 +57,7 @@ contract LaunchboxFactory is Ownable(msg.sender) {
         if (_platformFeePercentage + _communityAllocPercentage > HUNDRED_PERCENTAGE) {
             revert FeeGreaterThanHundred();
         }
-        if(_platformFeeReceiver == address(0)) revert EmptyPlatformFeeReceiver();
+        if (_platformFeeReceiver == address(0)) revert EmptyPlatformFeeReceiver();
         platformFeeAddress = payable(_platformFeeReceiver);
         platformFeePercentage = _platformFeePercentage;
         communityPercentage = _communityAllocPercentage;
@@ -89,7 +89,8 @@ contract LaunchboxFactory is Ownable(msg.sender) {
             launchboxExchangeImplementation,
             platformFeeAddress,
             router,
-            msg.sender);
+            msg.sender
+        );
 
         address curveClone = LaunchboxERC20(tokenClone).initialize(params);
 

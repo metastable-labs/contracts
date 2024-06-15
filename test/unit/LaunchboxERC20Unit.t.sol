@@ -29,9 +29,7 @@ contract LaunchboxERC20Unit is LaunchboxERC20Base {
             router,
             address(this)
         );
-        erc20.initialize(
-            params
-        );
+        erc20.initialize(params);
         assertNotEq(erc20.launchboxExchange(), address(0));
         assertEq(erc20.name(), name);
         assertEq(erc20.symbol(), symbol);
@@ -60,9 +58,7 @@ contract LaunchboxERC20Unit is LaunchboxERC20Base {
             router,
             address(this)
         );
-        erc20.initialize(
-            params
-        );
+        erc20.initialize(params);
     }
 
     function test_revert_initializeWithZeroMaxSupply() public {
@@ -81,9 +77,7 @@ contract LaunchboxERC20Unit is LaunchboxERC20Base {
             router,
             address(this)
         );
-        erc20.initialize(
-            params
-        );
+        erc20.initialize(params);
     }
 
     function test_revert_initializeWithNonZeroPlatformFeeAndZeroReceiver() public {
@@ -101,8 +95,6 @@ contract LaunchboxERC20Unit is LaunchboxERC20Base {
             router,
             address(this)
         );
-        erc20.initialize(
-            params
-        );
+        erc20.initialize(params);
     }
 }

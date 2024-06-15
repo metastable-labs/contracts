@@ -3,6 +3,7 @@ auto_detect_solc = true
 src = "src"
 out = "out"
 libs = ["lib"]
+fs_permissions = [{ access = "read", path = "./deployConfigs/base.json" }]
 test = "test"
 bytecode_hash = "none"
 cbor_metadata = false
