@@ -52,7 +52,12 @@ contract LaunchboxERC20 is ERC20Upgradeable {
             // send platform fee to platform fee address
             _mint(params._platformFeeAddress, params._platformFee);
         }
-        _mint(params._communityTreasuryOwner, params._communitySupply);
+        if (params._communitySupply != 0) {
+            // send community supply
+            // unline platform fee receive, community fee receiver will never be zero,
+            // as msg.sender is passed in as the receiver
+            _mint(params._communityTreasuryOwner, params._communitySupply);
+        }
         // send the balance to the exchange contract
         _mint(launchboxExchange, params._tokenSupplyAfterFee);
         LaunchboxExchange(launchboxExchange).initialize(
