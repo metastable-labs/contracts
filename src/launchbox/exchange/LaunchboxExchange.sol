@@ -3,9 +3,8 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IRouter} from "@aerodrome/contracts/contracts/interfaces/IRouter.sol";
-import {BancorBondingCurve} from "./BancorBondingCurve.sol";
 
-contract LaunchboxExchange is BancorBondingCurve {
+contract LaunchboxExchange {
     IERC20 public token;
     uint256 public maxSupply;
     uint256 public marketCapThreshold;
@@ -35,9 +34,9 @@ contract LaunchboxExchange is BancorBondingCurve {
         maxSupply = _maxSupply;
         marketCapThreshold = _marketCapThreshold;
         launchboxErc20Balance = token.balanceOf(address(this));
-        launchboxErc20BalanceReceived = launchboxErc20Balance;
+        launchboxErc20BalanceReceived = launchboxErc20Balance + 1;
         reserveRatio = 100_000; // 10%
-        ethBalance = address(this).balance;
+        ethBalance = address(this).balance + 1;
         saleActive = true;
     }
 
@@ -65,13 +64,11 @@ contract LaunchboxExchange is BancorBondingCurve {
     }
 
     function _convertToPurchaseTokens(uint256 ethAmount) internal view returns (uint256 tokenAmount) {
-        uint256 soldSupply = launchboxErc20BalanceReceived - launchboxErc20Balance;
-        return calculatePurchaseReturn(soldSupply, ethBalance, reserveRatio, ethAmount);
+        return calculatePurchaseTokenOut(ethAmount);
     }
 
     function _convertToSellTokens(uint256 tokenAmount) internal view returns (uint256 ethAmount) {
-        uint256 soldSupply = launchboxErc20BalanceReceived - launchboxErc20Balance;
-        return calculateSaleReturn(soldSupply, ethBalance, reserveRatio, tokenAmount);
+        return calculateSaleTokenOut(tokenAmount);
     }
 
     function calculateMarketCap() external view returns (uint256) {
@@ -118,6 +115,24 @@ contract LaunchboxExchange is BancorBondingCurve {
         );
 
         emit BondingEnded(totalEth, totalTokens);
+    }
+
+    function getAmountOut(uint256 amountIn, uint256 reserveIn, uint256 reserveOut) internal pure returns (uint256) {
+        require(amountIn > 0, "Amount in must be greater than 0");
+        uint256 amountInWithFee = amountIn * 1000; // assuming 0.3% fee
+        uint256 numerator = amountInWithFee * reserveOut;
+        uint256 denominator = (reserveIn * 1000) + amountInWithFee;
+        return numerator / denominator;
+    }
+
+    function calculatePurchaseTokenOut(uint256 amountETHIn) public view returns (uint256) {
+        uint256 tokenSupply = launchboxErc20Balance;
+        return getAmountOut(amountETHIn, ethBalance + 1.5 ether, tokenSupply);
+    }
+
+    function calculateSaleTokenOut(uint256 amountTokenIn) public view returns (uint256) {
+        uint256 tokenSupply = launchboxErc20Balance;
+        return getAmountOut(amountTokenIn, tokenSupply, ethBalance + 1.5 ether);
     }
 
     receive() external payable {

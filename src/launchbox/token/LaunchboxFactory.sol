@@ -121,11 +121,11 @@ contract LaunchboxFactory is Ownable(msg.sender) {
         marketCapThreshold = _newMarketCapThreshold;
     }
 
-    function _calculatePlatformFee(uint256 _totalSupply) internal returns (uint256) {
+    function _calculatePlatformFee(uint256 _totalSupply) internal view returns (uint256) {
         return (_totalSupply * platformFeePercentage) / HUNDRED_PERCENTAGE;
     }
 
-    function _calculateCommunityFee(uint256 _totalSupply) internal returns (uint256) {
+    function _calculateCommunityFee(uint256 _totalSupply) internal view returns (uint256) {
         return (_totalSupply * communityPercentage) / HUNDRED_PERCENTAGE;
     }
 }
