@@ -19,6 +19,7 @@ contract LaunchboxFactory is Ownable(msg.sender) {
      * @notice Percentage of token supply to charge as fee
      */
     uint256 public platformFeePercentage;
+    uint256 public tradeFee;
     /**
      * @notice Percentage of token supply that goes to the token creator for community incentives
      */
@@ -43,6 +44,7 @@ contract LaunchboxFactory is Ownable(msg.sender) {
         address _router,
         address _platformFeeReceiver,
         uint256 _marketCapThreshold,
+        uint256 _tradeFee,
         uint256 _platformFeePercentage,
         uint256 _communityAllocPercentage
     ) {
@@ -60,6 +62,7 @@ contract LaunchboxFactory is Ownable(msg.sender) {
 
         // set state
         platformFeeAddress = payable(_platformFeeReceiver);
+        tradeFee = _tradeFee;
         platformFeePercentage = _platformFeePercentage;
         communityPercentage = _communityAllocPercentage;
         tokenImplementation = _tokenImplementation;
@@ -88,6 +91,7 @@ contract LaunchboxFactory is Ownable(msg.sender) {
             name,
             symbol,
             metadataURI,
+            tradeFee,
             maxSupply - (feeFromTokenSupply + communityAllocFromTokenSupply),
             feeFromTokenSupply,
             communityAllocFromTokenSupply,

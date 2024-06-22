@@ -24,6 +24,6 @@ contract LaunchboxExchangeBase is Test {
         erc20 = new ERC20Mock();
         erc20.mint(address(exchange), totalToBeSold);
         erc20.mint(address(protocol), fee);
-        exchange.initialize(address(erc20), maxSupply, marketCapThreshold, router);
+        exchange.initialize(address(erc20), 0, maxSupply, marketCapThreshold, router);
     }
 }

@@ -15,6 +15,7 @@ contract LaunchboxFactoryBase is Test {
     uint256 public marketCapThreshold = 1_000_000_000;
     uint256 public platfromFeePercentage = 1 * 1e18;
     uint256 public communityPercentage = 9 * 1e18;
+    uint256 public tradeFee = 1 * 1e17;
 
     function setUp() public {
         erc20Impl = new LaunchboxERC20();
@@ -25,6 +26,7 @@ contract LaunchboxFactoryBase is Test {
             mockAerodromeRouter,
             platformFeeReceiver,
             marketCapThreshold,
+            tradeFee,
             platfromFeePercentage,
             communityPercentage
         );

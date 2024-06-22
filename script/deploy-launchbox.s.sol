@@ -21,6 +21,7 @@ contract DeployLaunchboxScript is BaseScript {
         uint256 marketCapThreshold = deployConfigJson.readUint(".marketCapThreshold");
         uint256 platformFeePercentage = deployConfigJson.readUint(".platformFeePercentage");
         uint256 communityPercentage = deployConfigJson.readUint(".communityPercentage");
+        uint256 tradeFee = deployConfigJson.readUint(".tradeFee");
         // deploy implementation
         address tokenImplementation = address(new LaunchboxERC20());
         // deploy exchange contract
@@ -34,6 +35,7 @@ contract DeployLaunchboxScript is BaseScript {
                 router,
                 platformFeeReceiver,
                 marketCapThreshold,
+                tradeFee,
                 platformFeePercentage,
                 communityPercentage
             )

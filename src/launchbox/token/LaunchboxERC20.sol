@@ -13,6 +13,7 @@ contract LaunchboxERC20 is ERC20Upgradeable {
         string _name;
         string _symbol;
         string _metadataURI;
+        uint256 _tradeFee;
         uint256 _tokenSupplyAfterFee;
         uint256 _platformFee;
         uint256 _communitySupply;
@@ -86,7 +87,7 @@ contract LaunchboxERC20 is ERC20Upgradeable {
 
         // initialize the launchbox
         LaunchboxExchange(_launchboxExchange).initialize(
-            address(this), params._tokenSupplyAfterFee, params._marketCapThreshold, params._router
+            address(this), params._tradeFee,  params._tokenSupplyAfterFee, params._marketCapThreshold, params._router
         );
         return _launchboxExchange;
     }

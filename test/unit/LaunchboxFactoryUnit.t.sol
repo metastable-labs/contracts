@@ -14,6 +14,7 @@ contract LaunchboxFactoryUnit is LaunchboxFactoryBase {
             mockAerodromeRouter,
             platformFeeReceiver,
             marketCapThreshold,
+            0,
             platfromFeePercentage,
             communityPercentage
         );
@@ -27,6 +28,7 @@ contract LaunchboxFactoryUnit is LaunchboxFactoryBase {
             mockAerodromeRouter,
             platformFeeReceiver,
             marketCapThreshold,
+            0,
             platfromFeePercentage,
             communityPercentage
         );
@@ -40,6 +42,7 @@ contract LaunchboxFactoryUnit is LaunchboxFactoryBase {
             address(0),
             platformFeeReceiver,
             marketCapThreshold,
+            0,
             platfromFeePercentage,
             communityPercentage
         );
@@ -53,6 +56,7 @@ contract LaunchboxFactoryUnit is LaunchboxFactoryBase {
             mockAerodromeRouter,
             address(0),
             marketCapThreshold,
+            0,
             platfromFeePercentage,
             communityPercentage
         );
@@ -66,6 +70,7 @@ contract LaunchboxFactoryUnit is LaunchboxFactoryBase {
             mockAerodromeRouter,
             platformFeeReceiver,
             marketCapThreshold,
+            0,
             100 * 1e18,
             1 * 1e18
         );

@@ -12,6 +12,7 @@ contract LaunchboxExchange {
     uint256 public launchboxErc20Balance;
     uint256 public ethBalance;
     uint32 public reserveRatio;
+    uint256 public tradeFee;
 
     bool public saleActive = false;
 
@@ -25,12 +26,14 @@ contract LaunchboxExchange {
 
     function initialize(
         address _tokenAddress,
+        uint256 _tradeFee,
         uint256 _maxSupply,
         uint256 _marketCapThreshold,
         address _aerodromeRouter
     ) external payable {
         aerodromeRouter = IRouter(_aerodromeRouter);
         token = IERC20(_tokenAddress);
+        tradeFee = _tradeFee;
         maxSupply = _maxSupply;
         marketCapThreshold = _marketCapThreshold;
         launchboxErc20Balance = token.balanceOf(address(this));
