@@ -5,13 +5,12 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IRouter} from "@aerodrome/contracts/contracts/interfaces/IRouter.sol";
 
 contract LaunchboxExchange {
+    uint256 public constant V_ETH_BALANCE = 1.5 ether;
     IERC20 public token;
     uint256 public maxSupply;
     uint256 public marketCapThreshold;
-    uint256 public launchboxErc20BalanceReceived;
     uint256 public launchboxErc20Balance;
     uint256 public ethBalance;
-    uint32 public reserveRatio;
     uint256 public tradeFee;
 
     bool public saleActive = false;
@@ -32,15 +31,19 @@ contract LaunchboxExchange {
         address _aerodromeRouter
     ) external payable {
         aerodromeRouter = IRouter(_aerodromeRouter);
-        token = IERC20(_tokenAddress);
         tradeFee = _tradeFee;
         maxSupply = _maxSupply;
         marketCapThreshold = _marketCapThreshold;
-        launchboxErc20Balance = token.balanceOf(address(this));
-        launchboxErc20BalanceReceived = launchboxErc20Balance;
-        reserveRatio = 100_000; // 10%
-        ethBalance = address(this).balance;
+        // sale is activate once the exchange is initialized
         saleActive = true;
+
+        // register token
+        token = IERC20(_tokenAddress);
+
+        // register initial balance
+        // assume whatever is in the exchange was meant to be sent to contract
+        ethBalance = address(this).balance;
+        launchboxErc20Balance = token.balanceOf(address(this));
 
         if (msg.value != 0) {
             _buy(msg.value, msg.sender);
@@ -66,7 +69,7 @@ contract LaunchboxExchange {
     }
 
     function getTokenPriceinETH() external view returns (uint256 ethAmount) {
-        return _convertToSellTokens(1 * 1e18);
+        return calculateSaleTokenOut(1 * 1e18);
     }
 
     function endBonding() internal {
@@ -104,16 +107,16 @@ contract LaunchboxExchange {
 
     function calculatePurchaseTokenOut(uint256 amountETHIn) public view returns (uint256) {
         uint256 tokenSupply = launchboxErc20Balance;
-        return getAmountOut(amountETHIn, ethBalance + 1.5 ether, tokenSupply);
+        return getAmountOut(amountETHIn, ethBalance + V_ETH_BALANCE, tokenSupply);
     }
 
     function calculateSaleTokenOut(uint256 amountTokenIn) public view returns (uint256) {
         uint256 tokenSupply = launchboxErc20Balance;
-        return getAmountOut(amountTokenIn, tokenSupply, ethBalance + 1.5 ether);
+        return getAmountOut(amountTokenIn, tokenSupply, ethBalance + V_ETH_BALANCE);
     }
 
     function _buy(uint256 ethAmount, address _receiver) internal {
-        uint256 tokensToMint = _convertToPurchaseTokens(ethAmount);
+        uint256 tokensToMint = calculatePurchaseTokenOut(ethAmount);
         if (tokensToMint > launchboxErc20Balance) {
             revert PurchaseExceedsSupply();
         }
@@ -128,7 +131,7 @@ contract LaunchboxExchange {
     }
 
     function _sell(uint256 tokenAmount,address receiver) internal {
-        uint256 ethToReturn = _convertToSellTokens(tokenAmount); // simplistic example
+        uint256 ethToReturn = calculateSaleTokenOut(tokenAmount); // simplistic example
         ethBalance -= ethToReturn;
         launchboxErc20Balance += tokenAmount;
         require(token.transferFrom(receiver, address(this), tokenAmount), "Transfer failed");
@@ -141,14 +144,6 @@ contract LaunchboxExchange {
 
     function _calculateMarketCap() internal view returns (uint256) {
         return ethBalance;
-    }
-
-    function _convertToPurchaseTokens(uint256 ethAmount) internal view returns (uint256 tokenAmount) {
-        return calculatePurchaseTokenOut(ethAmount);
-    }
-
-    function _convertToSellTokens(uint256 tokenAmount) internal view returns (uint256 ethAmount) {
-        return calculateSaleTokenOut(tokenAmount);
     }
 
     receive() external payable {
