@@ -16,9 +16,7 @@ contract DeployMigrationScript is Script {
         implementation = address(new SuperMigrateERC20());
 
         // deploy factory
-        factory = address(
-            new SuperERC20Factory(address(implementation), L2BridgeAddress)
-        );
+        factory = address(new SuperERC20Factory(address(implementation), L2BridgeAddress));
 
         vm.stopBroadcast();
 
