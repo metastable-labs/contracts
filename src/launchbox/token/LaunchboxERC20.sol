@@ -32,35 +32,62 @@ contract LaunchboxERC20 is ERC20Upgradeable {
     }
 
     function initialize(InitializeParams memory params) external payable initializer returns (address) {
+        // initialize ERC20 contract
         __ERC20_init(params._name, params._symbol);
+
+        // ensure the metadata URI is not empty
         if (bytes(params._metadataURI).length == 0) {
             revert MetadataEmpty();
         }
+
+        // enure the token supply is not zero
         if (params._tokenSupplyAfterFee == 0) {
             revert CannotSellZeroTokens();
         }
 
+        // set state
         metadataURI = params._metadataURI;
 
-        launchboxExchange = payable(Clones.clone(params._launchboxExchangeImplementation));
-        if (params._platformFee != 0) {
-            if (params._platformFeeAddress == address(0)) {
+        // transfer fees
+        _transferPlatformFee(params._platformFee, params._platformFeeAddress);
+        _transferCommunityShare(params._communitySupply, params._communityTreasuryOwner);
+
+        // deploy exchange contract
+        launchboxExchange = _deployExchange(params);
+
+        return launchboxExchange;
+    }
+
+    function _transferPlatformFee(uint256 _platformFee, address _platformFeeAddress) internal {
+        // transfer platform fee
+        if (_platformFee != 0) {
+            if (_platformFeeAddress == address(0)) {
                 revert PlatformFeeReceiverEmpty();
             }
             // send platform fee to platform fee address
-            _mint(params._platformFeeAddress, params._platformFee);
+            _mint(_platformFeeAddress, _platformFee);
         }
-        if (params._communitySupply != 0) {
+    }
+
+    function _transferCommunityShare(uint256 _communitySupply, address _communityTreasuryOwner) internal {
+        // transfer community supply fee
+        if (_communitySupply != 0) {
             // send community supply
             // unline platform fee receive, community fee receiver will never be zero,
             // as msg.sender is passed in as the receiver
-            _mint(params._communityTreasuryOwner, params._communitySupply);
+            _mint(_communityTreasuryOwner, _communitySupply);
         }
+    }
+
+    function _deployExchange(InitializeParams memory params) internal returns(address payable) {
+        address payable _launchboxExchange = payable(Clones.clone(params._launchboxExchangeImplementation));
         // send the balance to the exchange contract
-        _mint(launchboxExchange, params._tokenSupplyAfterFee);
-        LaunchboxExchange(launchboxExchange).initialize(
+        _mint(_launchboxExchange, params._tokenSupplyAfterFee);
+
+        // initialize the launchbox
+        LaunchboxExchange(_launchboxExchange).initialize(
             address(this), params._tokenSupplyAfterFee, params._marketCapThreshold, params._router
         );
-        return launchboxExchange;
+        return _launchboxExchange;
     }
 }
