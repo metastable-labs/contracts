@@ -4,6 +4,8 @@ import {LaunchboxExchange} from "../../src/launchbox/exchange/LaunchboxExchange.
 import {ERC20Mock} from "../mocks/ERC20Mock.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 import {Test} from "forge-std/Test.sol";
+import {MockPair} from "../mocks/MockPair.sol";
+import {WNative} from "../mocks/WNative.sol";
 
 contract LaunchboxExchangeBase is Test {
     LaunchboxExchange public exchange;
@@ -22,7 +24,7 @@ contract LaunchboxExchangeBase is Test {
     address public owner = makeAddr("owner");
     address public community = makeAddr("community");
     address public protocol = makeAddr("protocol");
-    address public router = makeAddr("router");
+    address public router = 0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43;
     address public feeReceiver = makeAddr("feeReceiver");
 
     function setUp() public {

@@ -5,7 +5,9 @@ import {console} from "forge-std/console.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 import {console} from "forge-std/console.sol";
 
-contract LaunchboxExchangeUnit is LaunchboxExchangeBase {
+// do fork testing
+// forge test --mc LaunchboxExchangeUnit_Fork --fork-url https://base-rpc.publicnode.com
+contract LaunchboxExchangeUnit_Fork is LaunchboxExchangeBase {
     function getAmountOutWithFee(uint256 amountIn, uint256 reserveIn, uint256 reserveOut, uint256 _tradeFee) internal pure returns (uint256, uint256) {
         require(amountIn > 0, "Amount in must be greater than 0");
         uint256 amountInWithFee = amountIn * (1000 - _tradeFee);
@@ -64,42 +66,62 @@ contract LaunchboxExchangeUnit is LaunchboxExchangeBase {
     }
 
     function test_marketCap() public {
-        assertEq(exchange.marketCap(), address(exchange).balance);
+        assertLe(exchange.marketCap(), 6000 ether);
     }
 
     function test_tokenPriceinETH() public {
-        assertNotEq(exchange.getTokenPriceinETH(), 0);
+        assertEq(exchange.getTokenPriceinETH(), (1.5 ether) * 10 ** 18 / totalToBeSold);
     }
 
     function test_buy() public {
+        exchange.buyTokens{value: 1 ether}();
+    }
+
+    function test_sell() public {
+        exchange.buyTokens{value: 1 ether}();
+        erc20.approve(address(exchange), erc20.balanceOf(address(this)));
+        exchange.sellTokens(erc20.balanceOf(address(this)));
+    }
+
+    function test_buyToCreatingLiquidityPool() public {
         uint256 beforeBalance = 0;
         uint256 tokensReceived = 0;
         uint256 price = 0;
         exchange.buyTokens{value: 1 ether}();
+        console.log("market cap");
+        console.log(exchange.marketCap());
         tokensReceived = erc20.balanceOf(address(this)) - beforeBalance;
         price = 1 ether / (tokensReceived / (1 ether * 3500));
         console.log(tokensReceived);
         console.log(price);
         beforeBalance = erc20.balanceOf(address(this));
         exchange.buyTokens{value: 1 ether}();
+        console.log("market cap");
+        console.log(exchange.marketCap());
         tokensReceived = erc20.balanceOf(address(this)) - beforeBalance;
         price = 1 ether / (tokensReceived / (1 ether * 3500));
         console.log(tokensReceived);
         console.log(price);
         beforeBalance = erc20.balanceOf(address(this));
         exchange.buyTokens{value: 1 ether}();
+        console.log("market cap");
+        console.log(exchange.marketCap());
         tokensReceived = erc20.balanceOf(address(this)) - beforeBalance;
         price = 1 ether / (tokensReceived / (1 ether * 3500));
         console.log(tokensReceived);
         console.log(price);
         beforeBalance = erc20.balanceOf(address(this));
         exchange.buyTokens{value: 1 ether}();
+        console.log("market cap");
+        console.log(exchange.marketCap());
         tokensReceived = erc20.balanceOf(address(this)) - beforeBalance;
         price = 1 ether / (tokensReceived / (1 ether * 3500));
         console.log(tokensReceived);
         console.log(price);
         beforeBalance = erc20.balanceOf(address(this));
         exchange.buyTokens{value: 1 ether}();
+        console.log("market cap");
+        console.log(exchange.marketCap());
         tokensReceived = erc20.balanceOf(address(this)) - beforeBalance;
         price = 1 ether / (tokensReceived / (1 ether * 3500));
         console.log(tokensReceived);
@@ -107,10 +129,13 @@ contract LaunchboxExchangeUnit is LaunchboxExchangeBase {
         beforeBalance = erc20.balanceOf(address(this));
 
         // sell
-        uint256 beforeSellBalance = address(this).balance;
         erc20.approve(address(exchange), beforeBalance);
+        vm.expectRevert(LaunchboxExchange.ExchangeInactive.selector);
         exchange.sellTokens(beforeBalance);
-        console.log(address(this).balance - beforeSellBalance);
+
+        // cannot buy after pool is created
+        vm.expectRevert(LaunchboxExchange.ExchangeInactive.selector);
+        exchange.buyTokens{value: 1 ether}();
     }
 
     receive() external payable {}

@@ -3,11 +3,13 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IRouter} from "@aerodrome/contracts/contracts/interfaces/IRouter.sol";
+import {IPool} from "@aerodrome/contracts/contracts/interfaces/IPool.sol";
 
 contract LaunchboxExchange {
     event ExchangeInitialized(address token, uint256 tradeFee, address feeReceiver, uint256 maxSupply);
     event TokenBuy(uint256 ethIn, uint256 tokenOut, uint256 fee, address buyer);
     event TokenSell(uint256 tokenIn, uint256 ethOut, uint256 fee, address seller);
+    IPool public constant WETH_USDC_PAIR = IPool(0xcDAC0d6c6C59727a65F871236188350531885C43);
     uint256 public constant V_ETH_BALANCE = 1.5 ether;
     IERC20 public token;
     uint256 public maxSupply;
@@ -84,8 +86,7 @@ contract LaunchboxExchange {
     }
 
     function getTokenPriceinETH() external view returns (uint256 ethAmount) {
-        (uint256 amountOut, ) = calculateSaleTokenOut(1 * 1e18);
-        return amountOut;
+        return _getSpotPrice();
     }
 
     function endBonding() internal {
@@ -171,10 +172,20 @@ contract LaunchboxExchange {
     }
 
     function _calculateMarketCap() internal view returns (uint256) {
-        return ethBalance;
+        return maxSupply * ((_getSpotPrice()) * _getWETHPrice() / 10**18) / 10 ** 18;
     }
 
     receive() external payable {
         buyTokens();
+    }
+
+    function _getSpotPrice() internal view returns(uint256) {
+        return (ethBalance + 1.5 ether) * 10 ** 18 / launchboxErc20Balance;
+    }
+
+    function _getWETHPrice() internal view returns(uint256) {
+        (uint256 _WETH_RESERVE, uint256 _USDC_RESERVE,) = WETH_USDC_PAIR.getReserves();
+        uint256 price = (_USDC_RESERVE * 10 **12 * 10 ** 18) / _WETH_RESERVE;
+        return price;
     }
 }
