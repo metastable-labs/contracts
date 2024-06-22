@@ -12,6 +12,7 @@ contract LaunchboxExchange {
     uint256 public launchboxErc20Balance;
     uint256 public ethBalance;
     uint256 public tradeFee;
+    address public feeReceiver;
 
     bool public saleActive = false;
 
@@ -22,6 +23,7 @@ contract LaunchboxExchange {
     error ExchangeInactive();
     error PurchaseExceedsSupply();
     error NotEnoughETH();
+    error FeeTransferFailed();
 
     function initialize(
         address _tokenAddress,
@@ -69,7 +71,8 @@ contract LaunchboxExchange {
     }
 
     function getTokenPriceinETH() external view returns (uint256 ethAmount) {
-        return calculateSaleTokenOut(1 * 1e18);
+        (uint256 amountOut, ) = calculateSaleTokenOut(1 * 1e18);
+        return amountOut;
     }
 
     function endBonding() internal {
@@ -97,32 +100,39 @@ contract LaunchboxExchange {
         emit BondingEnded(totalEth, totalTokens);
     }
 
-    function getAmountOut(uint256 amountIn, uint256 reserveIn, uint256 reserveOut) internal pure returns (uint256) {
+    function getAmountOutWithFee(uint256 amountIn, uint256 reserveIn, uint256 reserveOut, uint256 _tradeFee) internal pure returns (uint256, uint256) {
         require(amountIn > 0, "Amount in must be greater than 0");
-        uint256 amountInWithFee = amountIn * 1000; // assuming 0.3% fee
+        uint256 amountInWithFee = amountIn * (1000 - _tradeFee);
         uint256 numerator = amountInWithFee * reserveOut;
         uint256 denominator = (reserveIn * 1000) + amountInWithFee;
-        return numerator / denominator;
+        return (numerator / denominator, (amountIn * _tradeFee) / 1000);
     }
 
-    function calculatePurchaseTokenOut(uint256 amountETHIn) public view returns (uint256) {
+    function calculatePurchaseTokenOut(uint256 amountETHIn) public view returns (uint256, uint256 ) {
         uint256 tokenSupply = launchboxErc20Balance;
-        return getAmountOut(amountETHIn, ethBalance + V_ETH_BALANCE, tokenSupply);
+        return getAmountOutWithFee(amountETHIn, ethBalance + V_ETH_BALANCE, tokenSupply, tradeFee);
     }
 
-    function calculateSaleTokenOut(uint256 amountTokenIn) public view returns (uint256) {
+    function calculateSaleTokenOut(uint256 amountTokenIn) public view returns (uint256, uint256 ) {
         uint256 tokenSupply = launchboxErc20Balance;
-        return getAmountOut(amountTokenIn, tokenSupply, ethBalance + V_ETH_BALANCE);
+        return getAmountOutWithFee(amountTokenIn, tokenSupply, ethBalance + V_ETH_BALANCE, tradeFee);
     }
 
     function _buy(uint256 ethAmount, address _receiver) internal {
-        uint256 tokensToMint = calculatePurchaseTokenOut(ethAmount);
+        // calculate tokens to mint and fee in eth
+        (uint256 tokensToMint, uint256 feeInEth) = calculatePurchaseTokenOut(ethAmount);
         if (tokensToMint > launchboxErc20Balance) {
             revert PurchaseExceedsSupply();
         }
+        if(feeInEth > 0) {
+            (bool success, ) = feeReceiver.call{value: feeInEth}("");
+            if(!success) {
+                revert FeeTransferFailed();
+            }
+        }
 
         launchboxErc20Balance -= tokensToMint;
-        ethBalance += ethAmount;
+        ethBalance += (ethAmount - feeInEth);
         token.transfer(_receiver, tokensToMint);
 
         if (_calculateMarketCap() >= marketCapThreshold) {
@@ -131,10 +141,14 @@ contract LaunchboxExchange {
     }
 
     function _sell(uint256 tokenAmount,address receiver) internal {
-        uint256 ethToReturn = calculateSaleTokenOut(tokenAmount); // simplistic example
+        // calculate eth to refund and fee in token
+        (uint256 ethToReturn, uint256 feeInToken) = calculateSaleTokenOut(tokenAmount);
         ethBalance -= ethToReturn;
-        launchboxErc20Balance += tokenAmount;
+        launchboxErc20Balance += (tokenAmount - feeInToken);
         require(token.transferFrom(receiver, address(this), tokenAmount), "Transfer failed");
+        if(feeInToken > 0) {
+            token.transfer(feeReceiver, feeInToken);
+        }
         if (address(this).balance < ethToReturn) {
             revert NotEnoughETH();
         }
