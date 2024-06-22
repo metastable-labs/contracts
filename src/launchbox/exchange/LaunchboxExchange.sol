@@ -34,9 +34,9 @@ contract LaunchboxExchange {
         maxSupply = _maxSupply;
         marketCapThreshold = _marketCapThreshold;
         launchboxErc20Balance = token.balanceOf(address(this));
-        launchboxErc20BalanceReceived = launchboxErc20Balance + 1;
+        launchboxErc20BalanceReceived = launchboxErc20Balance;
         reserveRatio = 100_000; // 10%
-        ethBalance = address(this).balance + 1;
+        ethBalance = address(this).balance;
         saleActive = true;
     }
 
