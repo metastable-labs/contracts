@@ -7,6 +7,10 @@ import {LaunchboxERC20} from "./LaunchboxERC20.sol";
 
 contract LaunchboxFactory is Ownable(msg.sender) {
     event TokenDeployed(address tokenAddress, address launchboxExchangeAddress, address creator);
+    event PlatformFeePercentageUpdated(uint256 newPlatformFee);
+    event CommunityPerecentageUpdated(uint256 newCommunityShare);
+    event PlatformFeeAddressUpdated(address newPlatformFeeReceiver);
+    event MarketCapThresholdUpdated(uint256 newMarketCapThreshold);
 
     address public immutable tokenImplementation;
     address public immutable launchboxExchangeImplementation;
@@ -19,8 +23,6 @@ contract LaunchboxFactory is Ownable(msg.sender) {
      * @notice Percentage of token supply that goes to the token creator for community incentives
      */
     uint256 public communityPercentage;
-
-    address payable communityTreasuryOwner;
 
     address payable platformFeeAddress;
 
@@ -55,6 +57,8 @@ contract LaunchboxFactory is Ownable(msg.sender) {
             revert FeeGreaterThanHundred();
         }
         if (_platformFeeReceiver == address(0)) revert EmptyPlatformFeeReceiver();
+
+        // set state
         platformFeeAddress = payable(_platformFeeReceiver);
         platformFeePercentage = _platformFeePercentage;
         communityPercentage = _communityAllocPercentage;
@@ -64,16 +68,21 @@ contract LaunchboxFactory is Ownable(msg.sender) {
         router = _router;
     }
 
-    function deployToken(string memory name, string memory symbol, string memory metadataURI, uint256 maxSupply)
+    function deployToken(
+        string memory name,
+        string memory symbol,
+        string memory metadataURI,
+        uint256 maxSupply
+    )
         external
         payable
         returns (address, address)
     {
         // calculate platform fee
-        uint256 feeFromTokenSupply = _calculatePlatformFee(maxSupply);
+        uint256 feeFromTokenSupply = _calculateFee(maxSupply, platformFeePercentage);
         // calculate community percentage
-        uint256 communityAllocFromTokenSupply = _calculateCommunityFee(maxSupply);
-        address tokenClone = Clones.clone(tokenImplementation);
+        uint256 communityAllocFromTokenSupply = _calculateFee(maxSupply, communityPercentage);
+        address token = Clones.clone(tokenImplementation);
 
         LaunchboxERC20.InitializeParams memory params = LaunchboxERC20.InitializeParams(
             name,
@@ -89,10 +98,10 @@ contract LaunchboxFactory is Ownable(msg.sender) {
             msg.sender
         );
 
-        address curveClone = LaunchboxERC20(tokenClone).initialize(params);
+        address exchange = LaunchboxERC20(token).initialize(params);
 
-        emit TokenDeployed(tokenClone, curveClone, msg.sender);
-        return (tokenClone, curveClone);
+        emit TokenDeployed(token, exchange, msg.sender);
+        return (token, exchange);
     }
 
     /**
@@ -104,25 +113,25 @@ contract LaunchboxFactory is Ownable(msg.sender) {
 
     function setPlatformFeePercentage(uint256 _platformFeePercentage) public onlyOwner {
         platformFeePercentage = _platformFeePercentage;
+        emit PlatformFeePercentageUpdated(_platformFeePercentage);
     }
 
     function setCommunityPerecentage(uint256 _communityPercentage) public onlyOwner {
         communityPercentage = _communityPercentage;
+        emit CommunityPerecentageUpdated(_communityPercentage);
     }
 
     function setPlatformFeeAddress(address payable _platformFeeAddress) public onlyOwner {
         platformFeeAddress = _platformFeeAddress;
+        emit PlatformFeeAddressUpdated(_platformFeeAddress);
     }
 
     function setMarketCapThreshold(uint256 _newMarketCapThreshold) public onlyOwner {
         marketCapThreshold = _newMarketCapThreshold;
+        emit MarketCapThresholdUpdated(_newMarketCapThreshold);
     }
 
-    function _calculatePlatformFee(uint256 _totalSupply) internal view returns (uint256) {
-        return (_totalSupply * platformFeePercentage) / HUNDRED_PERCENTAGE;
-    }
-
-    function _calculateCommunityFee(uint256 _totalSupply) internal view returns (uint256) {
-        return (_totalSupply * communityPercentage) / HUNDRED_PERCENTAGE;
+    function _calculateFee(uint256 _totalSupply, uint256 _feePercentage) internal pure returns (uint256) {
+        return (_totalSupply * _feePercentage) / HUNDRED_PERCENTAGE;
     }
 }
