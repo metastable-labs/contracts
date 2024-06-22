@@ -5,6 +5,9 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IRouter} from "@aerodrome/contracts/contracts/interfaces/IRouter.sol";
 
 contract LaunchboxExchange {
+    event ExchangeInitialized(address token, uint256 tradeFee, address feeReceiver, uint256 maxSupply);
+    event TokenBuy(uint256 ethIn, uint256 tokenOut, uint256 fee, address buyer);
+    event TokenSell(uint256 tokenIn, uint256 ethOut, uint256 fee, address seller);
     uint256 public constant V_ETH_BALANCE = 1.5 ether;
     IERC20 public token;
     uint256 public maxSupply;
@@ -54,6 +57,8 @@ contract LaunchboxExchange {
         if (msg.value != 0) {
             _buy(msg.value, msg.sender);
         }
+
+        emit ExchangeInitialized(_tokenAddress, _tradeFee, _feeReceiver, _maxSupply);
     }
 
     function buyTokens() public payable {
@@ -122,7 +127,7 @@ contract LaunchboxExchange {
         return getAmountOutWithFee(amountTokenIn, tokenSupply, ethBalance + V_ETH_BALANCE, tradeFee);
     }
 
-    function _buy(uint256 ethAmount, address _receiver) internal {
+    function _buy(uint256 ethAmount, address receiver) internal {
         // calculate tokens to mint and fee in eth
         (uint256 tokensToMint, uint256 feeInEth) = calculatePurchaseTokenOut(ethAmount);
         if (tokensToMint > launchboxErc20Balance) {
@@ -137,8 +142,9 @@ contract LaunchboxExchange {
 
         launchboxErc20Balance -= tokensToMint;
         ethBalance += (ethAmount - feeInEth);
-        token.transfer(_receiver, tokensToMint);
+        token.transfer(receiver, tokensToMint);
 
+        emit TokenBuy(ethAmount, tokensToMint, feeInEth, receiver);
         if (_calculateMarketCap() >= marketCapThreshold) {
             endBonding();
         }
@@ -158,6 +164,7 @@ contract LaunchboxExchange {
         }
 
         payable(receiver).transfer(ethToReturn);
+        emit TokenSell(tokenAmount, ethToReturn, feeInToken, receiver);
     }
 
     function _calculateMarketCap() internal view returns (uint256) {

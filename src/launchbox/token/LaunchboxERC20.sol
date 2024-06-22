@@ -6,6 +6,13 @@ import "@openzeppelin/contracts/proxy/Clones.sol";
 import {LaunchboxExchange} from "../exchange/LaunchboxExchange.sol";
 
 contract LaunchboxERC20 is ERC20Upgradeable {
+    event TokenInitialized(
+        uint256 supplyToBeSold,
+        address platformFeeReceiver,
+        uint256 platformFee,
+        address communityShareReceiver,
+        uint256 communityShare
+    );
     string public metadataURI;
     address payable public launchboxExchange;
 
@@ -55,7 +62,7 @@ contract LaunchboxERC20 is ERC20Upgradeable {
 
         // deploy exchange contract
         launchboxExchange = _deployExchange(params);
-
+        emit TokenInitialized(params._tokenSupplyAfterFee, params._platformFeeAddress, params._platformFee, params._communityTreasuryOwner, params._communitySupply);
         return launchboxExchange;
     }
 
