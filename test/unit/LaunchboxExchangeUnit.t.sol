@@ -1,9 +1,76 @@
 pragma solidity ^0.8.20;
 
-import {LaunchboxExchangeBase} from "../base/LaunchboxExchange.base.sol";
+import {LaunchboxExchangeBase, LaunchboxExchange} from "../base/LaunchboxExchange.base.sol";
+import {console} from "forge-std/console.sol";
+import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 import {console} from "forge-std/console.sol";
 
 contract LaunchboxExchangeUnit is LaunchboxExchangeBase {
+    function getAmountOutWithFee(uint256 amountIn, uint256 reserveIn, uint256 reserveOut, uint256 _tradeFee) internal pure returns (uint256, uint256) {
+        require(amountIn > 0, "Amount in must be greater than 0");
+        uint256 amountInWithFee = amountIn * (1000 - _tradeFee);
+        uint256 numerator = amountInWithFee * reserveOut;
+        uint256 denominator = (reserveIn * 1000) + amountInWithFee;
+        return (numerator / denominator, (amountIn * _tradeFee) / 1000);
+    }
+
+    function test_revert_initializeMaxSupplyLowerThanSuppliedTokens() public {
+        LaunchboxExchange exchangeImpl = new LaunchboxExchange();
+        exchange = LaunchboxExchange(payable(Clones.clone(address(exchangeImpl))));
+        erc20.mint(address(exchange), totalToBeSold);
+        erc20.mint(protocol, platformFee);
+        erc20.mint(community, communityShare);
+        vm.expectRevert(LaunchboxExchange.MaxSupplyCannotBeLowerThanSuppliedTokens.selector);
+        exchange.initialize(address(erc20), feeReceiver, tradeFee, platformFee, marketCapThreshold, router);
+    }
+
+    function test_initialize() public {
+        LaunchboxExchange exchangeImpl = new LaunchboxExchange();
+        exchange = LaunchboxExchange(payable(Clones.clone(address(exchangeImpl))));
+        erc20.mint(address(exchange), totalToBeSold);
+        erc20.mint(protocol, platformFee);
+        erc20.mint(community, communityShare);
+        exchange.initialize(address(erc20), feeReceiver, tradeFee, maxSupply, marketCapThreshold, router);
+        assertEq(address(exchange.token()), address(erc20));
+        assertEq(exchange.maxSupply(), maxSupply);
+        assertEq(exchange.marketCapThreshold(), marketCapThreshold);
+        assertEq(exchange.launchboxErc20Balance(), totalToBeSold);
+        assertEq(exchange.ethBalance(), 0);
+        assertEq(exchange.tradeFee(), tradeFee);
+        assertEq(exchange.feeReceiver(), feeReceiver);
+        assertEq(exchange.saleActive(), true);
+        assertEq(address(exchange.aerodromeRouter()), router);
+    }
+
+    function test_initializeWithInitialBuy() public {
+        LaunchboxExchange exchangeImpl = new LaunchboxExchange();
+        exchange = LaunchboxExchange(payable(Clones.clone(address(exchangeImpl))));
+        erc20.mint(address(exchange), totalToBeSold);
+        erc20.mint(protocol, platformFee);
+        erc20.mint(community, communityShare);
+        (uint256 tokenAmountOut, uint256 fee) = getAmountOutWithFee(1e17,1.5 ether, totalToBeSold, tradeFee);
+        exchange.initialize{value: 1e17}(address(erc20), feeReceiver, tradeFee, maxSupply, marketCapThreshold, router);
+        assertEq(address(exchange.token()), address(erc20));
+        assertEq(exchange.maxSupply(), maxSupply);
+        assertEq(exchange.marketCapThreshold(), marketCapThreshold);
+        assertEq(exchange.launchboxErc20Balance(), totalToBeSold - tokenAmountOut);
+        assertEq(exchange.ethBalance(), 1e17 - fee);
+        assertEq(erc20.balanceOf(address(this)), tokenAmountOut);
+        assertEq(feeReceiver.balance, fee);
+        assertEq(exchange.tradeFee(), tradeFee);
+        assertEq(exchange.feeReceiver(), feeReceiver);
+        assertEq(exchange.saleActive(), true);
+        assertEq(address(exchange.aerodromeRouter()), router);
+    }
+
+    function test_marketCap() public {
+        assertEq(exchange.marketCap(), address(exchange).balance);
+    }
+
+    function test_tokenPriceinETH() public {
+        assertNotEq(exchange.getTokenPriceinETH(), 0);
+    }
+
     function test_buy() public {
         uint256 beforeBalance = 0;
         uint256 tokensReceived = 0;
@@ -44,20 +111,6 @@ contract LaunchboxExchangeUnit is LaunchboxExchangeBase {
         erc20.approve(address(exchange), beforeBalance);
         exchange.sellTokens(beforeBalance);
         console.log(address(this).balance - beforeSellBalance);
-        // console.log(beforeBalance - erc20.balanceOf(address(this)));
-        // beforeBalance = erc20.balanceOf(address(this));
-        // exchange.buyTokens{value: 1 ether}();
-        // console.log(beforeBalance - erc20.balanceOf(address(this)));
-        // beforeBalance = erc20.balanceOf(address(this));
-        // exchange.buyTokens{value: 1 ether}();
-        // console.log(beforeBalance - erc20.balanceOf(address(this)));
-        // beforeBalance = erc20.balanceOf(address(this));
-        // exchange.buyTokens{value: 1 ether}();
-        // console.log(beforeBalance - erc20.balanceOf(address(this)));
-        // beforeBalance = erc20.balanceOf(address(this));
-        // exchange.buyTokens{value: 1 ether}();
-        // console.log(beforeBalance - erc20.balanceOf(address(this)));
-        // beforeBalance = erc20.balanceOf(address(this));
     }
 
     receive() external payable {}

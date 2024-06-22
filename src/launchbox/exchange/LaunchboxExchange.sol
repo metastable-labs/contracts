@@ -17,7 +17,7 @@ contract LaunchboxExchange {
     uint256 public tradeFee;
     address public feeReceiver;
 
-    bool public saleActive = false;
+    bool public saleActive;
 
     IRouter public aerodromeRouter;
 
@@ -27,6 +27,7 @@ contract LaunchboxExchange {
     error PurchaseExceedsSupply();
     error NotEnoughETH();
     error FeeTransferFailed();
+    error MaxSupplyCannotBeLowerThanSuppliedTokens();
 
     function initialize(
         address _tokenAddress,
@@ -36,27 +37,30 @@ contract LaunchboxExchange {
         uint256 _marketCapThreshold,
         address _aerodromeRouter
     ) external payable {
-        aerodromeRouter = IRouter(_aerodromeRouter);
-        tradeFee = _tradeFee;
-        maxSupply = _maxSupply;
-        marketCapThreshold = _marketCapThreshold;
         // sale is activate once the exchange is initialized
         saleActive = true;
 
         // register token
         token = IERC20(_tokenAddress);
 
+        aerodromeRouter = IRouter(_aerodromeRouter);
+        tradeFee = _tradeFee;
+        maxSupply = _maxSupply;
+        marketCapThreshold = _marketCapThreshold;
+
         // fee receiver
         feeReceiver = _feeReceiver;
-
-        // register initial balance
-        // assume whatever is in the exchange was meant to be sent to contract
-        ethBalance = address(this).balance;
         launchboxErc20Balance = token.balanceOf(address(this));
 
         if (msg.value != 0) {
             _buy(msg.value, msg.sender);
         }
+
+        // register initial balance
+        // assume whatever is in the exchange was meant to be sent to contract
+        ethBalance = address(this).balance;
+
+        if(maxSupply < launchboxErc20Balance) revert MaxSupplyCannotBeLowerThanSuppliedTokens();
 
         emit ExchangeInitialized(_tokenAddress, _tradeFee, _feeReceiver, _maxSupply);
     }
@@ -139,7 +143,6 @@ contract LaunchboxExchange {
                 revert FeeTransferFailed();
             }
         }
-
         launchboxErc20Balance -= tokensToMint;
         ethBalance += (ethAmount - feeInEth);
         token.transfer(receiver, tokensToMint);
