@@ -11,6 +11,7 @@ contract LaunchboxFactory is Ownable(msg.sender) {
     event CommunityPerecentageUpdated(uint256 newCommunityShare);
     event PlatformFeeAddressUpdated(address newPlatformFeeReceiver);
     event MarketCapThresholdUpdated(uint256 newMarketCapThreshold);
+    event TradeFeeUpdated(uint256 newTradeFee);
 
     address public immutable tokenImplementation;
     address public immutable launchboxExchangeImplementation;
@@ -25,7 +26,7 @@ contract LaunchboxFactory is Ownable(msg.sender) {
      */
     uint256 public communityPercentage;
 
-    address payable platformFeeAddress;
+    address payable public platformFeeAddress;
 
     uint256 public marketCapThreshold;
 
@@ -120,12 +121,18 @@ contract LaunchboxFactory is Ownable(msg.sender) {
         emit PlatformFeePercentageUpdated(_platformFeePercentage);
     }
 
+    function setTradeFee(uint256 _tradeFee) public onlyOwner {
+        tradeFee = _tradeFee;
+        emit TradeFeeUpdated(_tradeFee);
+    }
+
     function setCommunityPerecentage(uint256 _communityPercentage) public onlyOwner {
         communityPercentage = _communityPercentage;
         emit CommunityPerecentageUpdated(_communityPercentage);
     }
 
     function setPlatformFeeAddress(address payable _platformFeeAddress) public onlyOwner {
+        if(_platformFeeAddress == address(0)) revert EmptyPlatformFeeReceiver();
         platformFeeAddress = _platformFeeAddress;
         emit PlatformFeeAddressUpdated(_platformFeeAddress);
     }

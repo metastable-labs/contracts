@@ -99,4 +99,58 @@ contract LaunchboxFactoryUnit is LaunchboxFactoryBase {
         vm.expectRevert();
         launchpad.renounceOwnership();
     }
+
+    function test_setPlatformFee() public {
+        launchpad.setPlatformFeePercentage(1);
+        assertEq(launchpad.platformFeePercentage(), 1);
+    }
+
+    function test_revert_setPlatformFeeNonOwner() public {
+        vm.prank(makeAddr("unknown"));
+        vm.expectRevert();
+        launchpad.setPlatformFeePercentage(1);
+        assertEq(launchpad.platformFeePercentage(), platfromFeePercentage);
+    }
+
+    function test_setCommunityFee() public {
+        launchpad.setCommunityPerecentage(1);
+        assertEq(launchpad.communityPercentage(), 1);
+    }
+
+    function test_revert_setCommunityFeeNonOwner() public {
+        vm.prank(makeAddr("unknown"));
+        vm.expectRevert();
+        launchpad.setCommunityPerecentage(1);
+        assertEq(launchpad.communityPercentage(), communityPercentage);
+    }
+
+    function test_setTradeFee() public {
+        launchpad.setTradeFee(1);
+        assertEq(launchpad.tradeFee(), 1);
+    }
+
+    function test_revert_setTradeFeeNonOwner() public {
+        vm.prank(makeAddr("unknown"));
+        vm.expectRevert();
+        launchpad.setTradeFee(1);
+        assertEq(launchpad.tradeFee(), tradeFee);
+    }
+
+    function test_setPlatformFeeReceiver() public {
+        launchpad.setPlatformFeeAddress(payable(makeAddr("newPlatformFeeReceiver")));
+        assertEq(launchpad.platformFeeAddress(), makeAddr("newPlatformFeeReceiver"));
+    }
+
+    function test_revert_setPlatformFeeReceiverNonOwner() public {
+        vm.prank(makeAddr("unknown"));
+        vm.expectRevert();
+        launchpad.setPlatformFeeAddress(payable(makeAddr("newPlatformFeeReceiver")));
+        assertEq(launchpad.platformFeeAddress(), platformFeeReceiver);
+    }
+
+    function test_revert_setPlatformFeeReceiverAsZero() public {
+        vm.expectRevert(LaunchboxFactory.EmptyPlatformFeeReceiver.selector);
+        launchpad.setPlatformFeeAddress(payable(address(0)));
+        assertEq(launchpad.platformFeeAddress(), platformFeeReceiver);
+    }
 }
