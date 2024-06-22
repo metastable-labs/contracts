@@ -7,9 +7,6 @@ import {LaunchboxERC20} from "./LaunchboxERC20.sol";
 
 contract LaunchboxFactory is Ownable(msg.sender) {
     event TokenDeployed(address tokenAddress, address launchboxExchangeAddress, address creator);
-    event LaunchboxExchangeImplementationUpdated(address newLaunchboxExchangeAddress);
-    event TokenImplementationUpdated(address newTokenImplementationAddress);
-    event UniswapRouterUpdated(address newRouter);
 
     address public immutable tokenImplementation;
     address public immutable launchboxExchangeImplementation;
