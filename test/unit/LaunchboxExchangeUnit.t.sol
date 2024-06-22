@@ -8,7 +8,11 @@ import {console} from "forge-std/console.sol";
 // do fork testing
 // forge test --mc LaunchboxExchangeUnit_Fork --fork-url https://base-rpc.publicnode.com
 contract LaunchboxExchangeUnit_Fork is LaunchboxExchangeBase {
-    function getAmountOutWithFee(uint256 amountIn, uint256 reserveIn, uint256 reserveOut, uint256 _tradeFee) internal pure returns (uint256, uint256) {
+    function getAmountOutWithFee(uint256 amountIn, uint256 reserveIn, uint256 reserveOut, uint256 _tradeFee)
+        internal
+        pure
+        returns (uint256, uint256)
+    {
         require(amountIn > 0, "Amount in must be greater than 0");
         uint256 amountInWithFee = amountIn * (1000 - _tradeFee);
         uint256 numerator = amountInWithFee * reserveOut;
@@ -50,7 +54,7 @@ contract LaunchboxExchangeUnit_Fork is LaunchboxExchangeBase {
         erc20.mint(address(exchange), totalToBeSold);
         erc20.mint(protocol, platformFee);
         erc20.mint(community, communityShare);
-        (uint256 tokenAmountOut, uint256 fee) = getAmountOutWithFee(1e17,1.5 ether, totalToBeSold, tradeFee);
+        (uint256 tokenAmountOut, uint256 fee) = getAmountOutWithFee(1e17, 1.5 ether, totalToBeSold, tradeFee);
         exchange.initialize{value: 1e17}(address(erc20), feeReceiver, tradeFee, maxSupply, marketCapThreshold, router);
         assertEq(address(exchange.token()), address(erc20));
         assertEq(exchange.maxSupply(), maxSupply);

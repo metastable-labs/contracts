@@ -9,6 +9,7 @@ contract LaunchboxExchange {
     event ExchangeInitialized(address token, uint256 tradeFee, address feeReceiver, uint256 maxSupply);
     event TokenBuy(uint256 ethIn, uint256 tokenOut, uint256 fee, address buyer);
     event TokenSell(uint256 tokenIn, uint256 ethOut, uint256 fee, address seller);
+
     IPool public constant WETH_USDC_PAIR = IPool(0xcDAC0d6c6C59727a65F871236188350531885C43);
     uint256 public constant V_ETH_BALANCE = 1.5 ether;
     IERC20 public token;
@@ -62,7 +63,7 @@ contract LaunchboxExchange {
         // assume whatever is in the exchange was meant to be sent to contract
         ethBalance = address(this).balance;
 
-        if(maxSupply < launchboxErc20Balance) revert MaxSupplyCannotBeLowerThanSuppliedTokens();
+        if (maxSupply < launchboxErc20Balance) revert MaxSupplyCannotBeLowerThanSuppliedTokens();
 
         emit ExchangeInitialized(_tokenAddress, _tradeFee, _feeReceiver, _maxSupply);
     }
@@ -114,7 +115,11 @@ contract LaunchboxExchange {
         emit BondingEnded(totalEth, totalTokens);
     }
 
-    function getAmountOutWithFee(uint256 amountIn, uint256 reserveIn, uint256 reserveOut, uint256 _tradeFee) internal pure returns (uint256, uint256) {
+    function getAmountOutWithFee(uint256 amountIn, uint256 reserveIn, uint256 reserveOut, uint256 _tradeFee)
+        internal
+        pure
+        returns (uint256, uint256)
+    {
         require(amountIn > 0, "Amount in must be greater than 0");
         uint256 amountInWithFee = amountIn * (1000 - _tradeFee);
         uint256 numerator = amountInWithFee * reserveOut;
@@ -122,12 +127,12 @@ contract LaunchboxExchange {
         return (numerator / denominator, (amountIn * _tradeFee) / 1000);
     }
 
-    function calculatePurchaseTokenOut(uint256 amountETHIn) public view returns (uint256, uint256 ) {
+    function calculatePurchaseTokenOut(uint256 amountETHIn) public view returns (uint256, uint256) {
         uint256 tokenSupply = launchboxErc20Balance;
         return getAmountOutWithFee(amountETHIn, ethBalance + V_ETH_BALANCE, tokenSupply, tradeFee);
     }
 
-    function calculateSaleTokenOut(uint256 amountTokenIn) public view returns (uint256, uint256 ) {
+    function calculateSaleTokenOut(uint256 amountTokenIn) public view returns (uint256, uint256) {
         uint256 tokenSupply = launchboxErc20Balance;
         return getAmountOutWithFee(amountTokenIn, tokenSupply, ethBalance + V_ETH_BALANCE, tradeFee);
     }
@@ -138,9 +143,9 @@ contract LaunchboxExchange {
         if (tokensToMint > launchboxErc20Balance) {
             revert PurchaseExceedsSupply();
         }
-        if(feeInEth > 0) {
-            (bool success, ) = feeReceiver.call{value: feeInEth}("");
-            if(!success) {
+        if (feeInEth > 0) {
+            (bool success,) = feeReceiver.call{value: feeInEth}("");
+            if (!success) {
                 revert FeeTransferFailed();
             }
         }
@@ -154,13 +159,13 @@ contract LaunchboxExchange {
         }
     }
 
-    function _sell(uint256 tokenAmount,address receiver) internal {
+    function _sell(uint256 tokenAmount, address receiver) internal {
         // calculate eth to refund and fee in token
         (uint256 ethToReturn, uint256 feeInToken) = calculateSaleTokenOut(tokenAmount);
         ethBalance -= ethToReturn;
         launchboxErc20Balance += (tokenAmount - feeInToken);
         require(token.transferFrom(receiver, address(this), tokenAmount), "Transfer failed");
-        if(feeInToken > 0) {
+        if (feeInToken > 0) {
             token.transfer(feeReceiver, feeInToken);
         }
         if (address(this).balance < ethToReturn) {
@@ -172,20 +177,20 @@ contract LaunchboxExchange {
     }
 
     function _calculateMarketCap() internal view returns (uint256) {
-        return maxSupply * ((_getSpotPrice()) * _getWETHPrice() / 10**18) / 10 ** 18;
+        return maxSupply * ((_getSpotPrice()) * _getWETHPrice() / 10 ** 18) / 10 ** 18;
     }
 
     receive() external payable {
         buyTokens();
     }
 
-    function _getSpotPrice() internal view returns(uint256) {
+    function _getSpotPrice() internal view returns (uint256) {
         return (ethBalance + 1.5 ether) * 10 ** 18 / launchboxErc20Balance;
     }
 
-    function _getWETHPrice() internal view returns(uint256) {
+    function _getWETHPrice() internal view returns (uint256) {
         (uint256 _WETH_RESERVE, uint256 _USDC_RESERVE,) = WETH_USDC_PAIR.getReserves();
-        uint256 price = (_USDC_RESERVE * 10 **12 * 10 ** 18) / _WETH_RESERVE;
+        uint256 price = (_USDC_RESERVE * 10 ** 12 * 10 ** 18) / _WETH_RESERVE;
         return price;
     }
 }

@@ -72,12 +72,7 @@ contract LaunchboxFactory is Ownable(msg.sender) {
         router = _router;
     }
 
-    function deployToken(
-        string memory name,
-        string memory symbol,
-        string memory metadataURI,
-        uint256 maxSupply
-    )
+    function deployToken(string memory name, string memory symbol, string memory metadataURI, uint256 maxSupply)
         external
         payable
         returns (address, address)
@@ -132,7 +127,7 @@ contract LaunchboxFactory is Ownable(msg.sender) {
     }
 
     function setPlatformFeeAddress(address payable _platformFeeAddress) public onlyOwner {
-        if(_platformFeeAddress == address(0)) revert EmptyPlatformFeeReceiver();
+        if (_platformFeeAddress == address(0)) revert EmptyPlatformFeeReceiver();
         platformFeeAddress = _platformFeeAddress;
         emit PlatformFeeAddressUpdated(_platformFeeAddress);
     }
