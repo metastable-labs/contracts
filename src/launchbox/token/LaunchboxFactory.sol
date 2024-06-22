@@ -102,7 +102,7 @@ contract LaunchboxFactory is Ownable(msg.sender) {
             msg.sender
         );
 
-        address exchange = LaunchboxERC20(token).initialize(params);
+        address exchange = LaunchboxERC20(token).initialize{value: msg.value}(params);
 
         emit TokenDeployed(token, exchange, msg.sender);
         return (token, exchange);

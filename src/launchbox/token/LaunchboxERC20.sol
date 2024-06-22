@@ -86,7 +86,7 @@ contract LaunchboxERC20 is ERC20Upgradeable {
         _mint(_launchboxExchange, params._tokenSupplyAfterFee);
 
         // initialize the launchbox
-        LaunchboxExchange(_launchboxExchange).initialize(
+        LaunchboxExchange(_launchboxExchange).initialize{value: msg.value}(
             address(this), params._tradeFee,  params._tokenSupplyAfterFee, params._marketCapThreshold, params._router
         );
         return _launchboxExchange;

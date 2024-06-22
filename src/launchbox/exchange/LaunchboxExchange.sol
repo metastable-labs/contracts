@@ -41,40 +41,27 @@ contract LaunchboxExchange {
         reserveRatio = 100_000; // 10%
         ethBalance = address(this).balance;
         saleActive = true;
+
+        if (msg.value != 0) {
+            _buy(msg.value, msg.sender);
+        }
     }
 
     function buyTokens() public payable {
         if (!saleActive) {
             revert ExchangeInactive();
         }
-        // Example bonding curve pricing logic
-        uint256 tokensToMint = _convertToPurchaseTokens(msg.value);
-        if (tokensToMint > launchboxErc20Balance) {
-            revert PurchaseExceedsSupply();
+        _buy(msg.value, msg.sender);
+    }
+
+    function sellTokens(uint256 tokenAmount) public {
+        if (!saleActive) {
+            revert ExchangeInactive();
         }
-
-        launchboxErc20Balance -= tokensToMint;
-        ethBalance += msg.value;
-        token.transfer(msg.sender, tokensToMint);
-
-        if (_calculateMarketCap() >= marketCapThreshold) {
-            endBonding();
-        }
+        _sell(tokenAmount, msg.sender);
     }
 
-    function _calculateMarketCap() internal view returns (uint256) {
-        return ethBalance;
-    }
-
-    function _convertToPurchaseTokens(uint256 ethAmount) internal view returns (uint256 tokenAmount) {
-        return calculatePurchaseTokenOut(ethAmount);
-    }
-
-    function _convertToSellTokens(uint256 tokenAmount) internal view returns (uint256 ethAmount) {
-        return calculateSaleTokenOut(tokenAmount);
-    }
-
-    function calculateMarketCap() external view returns (uint256) {
+    function marketCap() external view returns (uint256) {
         return _calculateMarketCap();
     }
 
@@ -82,28 +69,15 @@ contract LaunchboxExchange {
         return _convertToSellTokens(1 * 1e18);
     }
 
-    function sellTokens(uint256 tokenAmount) public {
-        if (!saleActive) {
-            revert ExchangeInactive();
-        }
-
-        uint256 ethToReturn = _convertToSellTokens(tokenAmount); // simplistic example
-        ethBalance -= ethToReturn;
-        launchboxErc20Balance += tokenAmount;
-        require(token.transferFrom(msg.sender, address(this), tokenAmount), "Transfer failed");
-        if (address(this).balance < ethToReturn) {
-            revert NotEnoughETH();
-        }
-
-        payable(msg.sender).transfer(ethToReturn);
-    }
-
     function endBonding() internal {
+        // deactivate sale
         saleActive = false;
-        uint256 totalTokens = token.balanceOf(address(this));
-        uint256 totalEth = address(this).balance;
 
-        // Approve Uniswap router to spend tokens
+        // calculate total liquidity
+        uint256 totalTokens = launchboxErc20Balance;
+        uint256 totalEth = ethBalance;
+
+        // Approve router to spend tokens
         token.approve(address(aerodromeRouter), totalTokens);
 
         // Add liquidity to Uniswap
@@ -136,6 +110,45 @@ contract LaunchboxExchange {
     function calculateSaleTokenOut(uint256 amountTokenIn) public view returns (uint256) {
         uint256 tokenSupply = launchboxErc20Balance;
         return getAmountOut(amountTokenIn, tokenSupply, ethBalance + 1.5 ether);
+    }
+
+    function _buy(uint256 ethAmount, address _receiver) internal {
+        uint256 tokensToMint = _convertToPurchaseTokens(ethAmount);
+        if (tokensToMint > launchboxErc20Balance) {
+            revert PurchaseExceedsSupply();
+        }
+
+        launchboxErc20Balance -= tokensToMint;
+        ethBalance += ethAmount;
+        token.transfer(_receiver, tokensToMint);
+
+        if (_calculateMarketCap() >= marketCapThreshold) {
+            endBonding();
+        }
+    }
+
+    function _sell(uint256 tokenAmount,address receiver) internal {
+        uint256 ethToReturn = _convertToSellTokens(tokenAmount); // simplistic example
+        ethBalance -= ethToReturn;
+        launchboxErc20Balance += tokenAmount;
+        require(token.transferFrom(receiver, address(this), tokenAmount), "Transfer failed");
+        if (address(this).balance < ethToReturn) {
+            revert NotEnoughETH();
+        }
+
+        payable(receiver).transfer(ethToReturn);
+    }
+
+    function _calculateMarketCap() internal view returns (uint256) {
+        return ethBalance;
+    }
+
+    function _convertToPurchaseTokens(uint256 ethAmount) internal view returns (uint256 tokenAmount) {
+        return calculatePurchaseTokenOut(ethAmount);
+    }
+
+    function _convertToSellTokens(uint256 tokenAmount) internal view returns (uint256 ethAmount) {
+        return calculateSaleTokenOut(tokenAmount);
     }
 
     receive() external payable {
