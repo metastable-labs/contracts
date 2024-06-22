@@ -17,6 +17,7 @@ contract LaunchboxExchangeBase is Test {
     address public owner = makeAddr("owner");
     address public protocol = makeAddr("protocol");
     address public router = makeAddr("router");
+    address public feeReceiver = makeAddr("feeReceiver");
 
     function setUp() public {
         LaunchboxExchange exchangeImpl = new LaunchboxExchange();
@@ -24,6 +25,6 @@ contract LaunchboxExchangeBase is Test {
         erc20 = new ERC20Mock();
         erc20.mint(address(exchange), totalToBeSold);
         erc20.mint(address(protocol), fee);
-        exchange.initialize(address(erc20), 0, maxSupply, marketCapThreshold, router);
+        exchange.initialize(address(erc20), feeReceiver, 0, maxSupply, marketCapThreshold, router);
     }
 }

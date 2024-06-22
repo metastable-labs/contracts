@@ -27,6 +27,7 @@ contract LaunchboxExchange {
 
     function initialize(
         address _tokenAddress,
+        address _feeReceiver,
         uint256 _tradeFee,
         uint256 _maxSupply,
         uint256 _marketCapThreshold,
@@ -41,6 +42,9 @@ contract LaunchboxExchange {
 
         // register token
         token = IERC20(_tokenAddress);
+
+        // fee receiver
+        feeReceiver = _feeReceiver;
 
         // register initial balance
         // assume whatever is in the exchange was meant to be sent to contract
