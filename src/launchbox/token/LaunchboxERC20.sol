@@ -13,6 +13,7 @@ contract LaunchboxERC20 is ERC20Upgradeable {
         address communityShareReceiver,
         uint256 communityShare
     );
+
     string public metadataURI;
     address payable public launchboxExchange;
 
@@ -62,7 +63,13 @@ contract LaunchboxERC20 is ERC20Upgradeable {
 
         // deploy exchange contract
         launchboxExchange = _deployExchange(params);
-        emit TokenInitialized(params._tokenSupplyAfterFee, params._platformFeeAddress, params._platformFee, params._communityTreasuryOwner, params._communitySupply);
+        emit TokenInitialized(
+            params._tokenSupplyAfterFee,
+            params._platformFeeAddress,
+            params._platformFee,
+            params._communityTreasuryOwner,
+            params._communitySupply
+        );
         return launchboxExchange;
     }
 
@@ -87,14 +94,19 @@ contract LaunchboxERC20 is ERC20Upgradeable {
         }
     }
 
-    function _deployExchange(InitializeParams memory params) internal returns(address payable) {
+    function _deployExchange(InitializeParams memory params) internal returns (address payable) {
         address payable _launchboxExchange = payable(Clones.clone(params._launchboxExchangeImplementation));
         // send the balance to the exchange contract
         _mint(_launchboxExchange, params._tokenSupplyAfterFee);
 
         // initialize the launchbox
         LaunchboxExchange(_launchboxExchange).initialize{value: msg.value}(
-            address(this), params._platformFeeAddress, params._tradeFee,  params._tokenSupplyAfterFee, params._marketCapThreshold, params._router
+            address(this),
+            params._platformFeeAddress,
+            params._tradeFee,
+            params._tokenSupplyAfterFee,
+            params._marketCapThreshold,
+            params._router
         );
         return _launchboxExchange;
     }
