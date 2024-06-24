@@ -100,7 +100,7 @@ contract LaunchboxExchange {
         // Approve router to spend tokens
         token.approve(address(aerodromeRouter), totalTokens);
 
-        // Add liquidity to Uniswap
+        // Add liquidity to Aerodrome
         aerodromeRouter.addLiquidityETH{value: totalEth}(
             address(token),
             false, // not stable pool
@@ -172,7 +172,12 @@ contract LaunchboxExchange {
     }
 
     function _calculateMarketCap() internal view returns (uint256) {
-        return maxSupply * ((_getSpotPrice()) * _getWETHPrice() / 10**18) / 10 ** 18;
+        uint256 spotPrice = _getSpotPrice();
+        uint256 wethPrice = _getWETHPrice();
+        if(spotPrice > 10**45) {
+            return maxSupply * (((spotPrice / 10**18) * wethPrice) / 10 ** 18);
+        }
+        return maxSupply * ((spotPrice * wethPrice) / 10**18) / 10 ** 18;
     }
 
     receive() external payable {
