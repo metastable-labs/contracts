@@ -4,7 +4,6 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IRouter} from "@aerodrome/contracts/contracts/interfaces/IRouter.sol";
 import {IPool} from "@aerodrome/contracts/contracts/interfaces/IPool.sol";
-import {console} from "forge-std/console.sol";
 
 contract LaunchboxExchange {
     event ExchangeInitialized(
@@ -20,7 +19,6 @@ contract LaunchboxExchange {
         uint256 fee,
         address seller
     );
-
     IPool public constant WETH_USDC_PAIR =
         IPool(0xcDAC0d6c6C59727a65F871236188350531885C43);
     uint256 public constant V_ETH_BALANCE = 1.5 ether;
@@ -75,9 +73,8 @@ contract LaunchboxExchange {
         // assume whatever is in the exchange was meant to be sent to contract
         ethBalance = address(this).balance;
 
-        if (maxSupply < launchboxErc20Balance) {
+        if (maxSupply < launchboxErc20Balance)
             revert MaxSupplyCannotBeLowerThanSuppliedTokens();
-        }
 
         emit ExchangeInitialized(
             _tokenAddress,
@@ -139,62 +136,12 @@ contract LaunchboxExchange {
         uint256 reserveIn,
         uint256 reserveOut,
         uint256 _tradeFee
-    ) internal pure returns (uint256 amountOut, uint256 fee) {
+    ) internal pure returns (uint256, uint256) {
         require(amountIn > 0, "Amount in must be greater than 0");
-        require(
-            reserveIn > 0 && reserveOut > 0,
-            "Reserves must be greater than 0"
-        );
-
-        // Calculate fee
-        uint256 feeNumerator = mul(amountIn, _tradeFee);
-        fee = div(feeNumerator, 1000);
-
-        // Calculate amountInWithFee
-        uint256 amountInWithFee = sub(amountIn, fee);
-
-        // Calculate numerator
-        uint256 numerator = mul(amountInWithFee, reserveOut);
-
-        // Calculate denominator
-        uint256 reserveIn1000 = mul(reserveIn, 1000);
-        uint256 amountInWithFee1000 = mul(amountInWithFee, 1000);
-        uint256 denominator = add(
-            reserveIn1000,
-            div(amountInWithFee1000, amountIn)
-        );
-
-        require(denominator > 0, "Denominator must be greater than 0");
-
-        // Calculate amountOut
-        uint256 amountOut1000 = mul(numerator, 1000);
-        amountOut = div(amountOut1000, denominator);
-
-        return (amountOut, fee);
-    }
-
-    // SafeMath functions
-    function add(uint256 a, uint256 b) internal pure returns (uint256) {
-        uint256 c = a + b;
-        require(c >= a, "SafeMath: addition overflow");
-        return c;
-    }
-
-    function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-        require(b <= a, "SafeMath: subtraction overflow");
-        return a - b;
-    }
-
-    function mul(uint256 a, uint256 b) internal pure returns (uint256) {
-        if (a == 0) return 0;
-        uint256 c = a * b;
-        require(c / a == b, "SafeMath: multiplication overflow");
-        return c;
-    }
-
-    function div(uint256 a, uint256 b) internal pure returns (uint256) {
-        require(b > 0, "SafeMath: division by zero");
-        return a / b;
+        uint256 amountInWithFee = amountIn * (1000 - _tradeFee);
+        uint256 numerator = amountInWithFee * reserveOut;
+        uint256 denominator = (reserveIn * 1000) + amountInWithFee;
+        return (numerator / denominator, (amountIn * _tradeFee) / 1000);
     }
 
     function calculatePurchaseTokenOut(
