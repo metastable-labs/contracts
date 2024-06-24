@@ -68,6 +68,27 @@ contract LaunchboxExchangeUnit_Fork is LaunchboxExchangeBase {
         assertEq(exchange.saleActive(), true);
         assertEq(address(exchange.aerodromeRouter()), router);
     }
+    
+    function test_initializeWithInitialBuyWithLowEth() public {
+        LaunchboxExchange exchangeImpl = new LaunchboxExchange();
+        exchange = LaunchboxExchange(payable(Clones.clone(address(exchangeImpl))));
+        erc20.mint(address(exchange), totalToBeSold);
+        erc20.mint(protocol, platformFee);
+        erc20.mint(community, communityShare);
+        (uint256 tokenAmountOut, uint256 fee) = getAmountOutWithFee(1e10,1.5 ether, totalToBeSold, tradeFee);
+        exchange.initialize{value: 1e10}(address(erc20), feeReceiver, tradeFee, maxSupply, marketCapThreshold, router);
+        assertEq(address(exchange.token()), address(erc20));
+        assertEq(exchange.maxSupply(), maxSupply);
+        assertEq(exchange.marketCapThreshold(), marketCapThreshold);
+        assertEq(exchange.launchboxErc20Balance(), totalToBeSold - tokenAmountOut);
+        assertEq(exchange.ethBalance(), 1e10 - fee);
+        assertEq(erc20.balanceOf(address(this)), tokenAmountOut);
+        assertEq(feeReceiver.balance, fee);
+        assertEq(exchange.tradeFee(), tradeFee);
+        assertEq(exchange.feeReceiver(), feeReceiver);
+        assertEq(exchange.saleActive(), true);
+        assertEq(address(exchange.aerodromeRouter()), router);
+    }
 
     function test_marketCap() public {
         assertLe(exchange.marketCap(), 6000 ether);
@@ -88,49 +109,15 @@ contract LaunchboxExchangeUnit_Fork is LaunchboxExchangeBase {
     }
 
     function test_buyToCreatingLiquidityPool() public {
+        uint256 currentMarketCap;
         uint256 beforeBalance = 0;
-        uint256 tokensReceived = 0;
-        uint256 price = 0;
-        exchange.buyTokens{value: 1 ether}();
-        console.log("market cap");
-        console.log(exchange.marketCap());
-        tokensReceived = erc20.balanceOf(address(this)) - beforeBalance;
-        price = 1 ether / (tokensReceived / (1 ether * 3500));
-        console.log(tokensReceived);
-        console.log(price);
-        beforeBalance = erc20.balanceOf(address(this));
-        exchange.buyTokens{value: 1 ether}();
-        console.log("market cap");
-        console.log(exchange.marketCap());
-        tokensReceived = erc20.balanceOf(address(this)) - beforeBalance;
-        price = 1 ether / (tokensReceived / (1 ether * 3500));
-        console.log(tokensReceived);
-        console.log(price);
-        beforeBalance = erc20.balanceOf(address(this));
-        exchange.buyTokens{value: 1 ether}();
-        console.log("market cap");
-        console.log(exchange.marketCap());
-        tokensReceived = erc20.balanceOf(address(this)) - beforeBalance;
-        price = 1 ether / (tokensReceived / (1 ether * 3500));
-        console.log(tokensReceived);
-        console.log(price);
-        beforeBalance = erc20.balanceOf(address(this));
-        exchange.buyTokens{value: 1 ether}();
-        console.log("market cap");
-        console.log(exchange.marketCap());
-        tokensReceived = erc20.balanceOf(address(this)) - beforeBalance;
-        price = 1 ether / (tokensReceived / (1 ether * 3500));
-        console.log(tokensReceived);
-        console.log(price);
-        beforeBalance = erc20.balanceOf(address(this));
-        exchange.buyTokens{value: 1 ether}();
-        console.log("market cap");
-        console.log(exchange.marketCap());
-        tokensReceived = erc20.balanceOf(address(this)) - beforeBalance;
-        price = 1 ether / (tokensReceived / (1 ether * 3500));
-        console.log(tokensReceived);
-        console.log(price);
-        beforeBalance = erc20.balanceOf(address(this));
+        while (currentMarketCap < marketCapThreshold) {
+            exchange.buyTokens{value: 1 ether}();
+            currentMarketCap = exchange.marketCap();
+            console.log("market cap");
+            console.log(currentMarketCap);
+            beforeBalance = erc20.balanceOf(address(this));
+        }
 
         // sell
         erc20.approve(address(exchange), beforeBalance);
@@ -140,6 +127,61 @@ contract LaunchboxExchangeUnit_Fork is LaunchboxExchangeBase {
         // cannot buy after pool is created
         vm.expectRevert(LaunchboxExchange.ExchangeInactive.selector);
         exchange.buyTokens{value: 1 ether}();
+    }
+
+    function test_buy_fuzz(uint256 _ethAmount) public {
+        // no one in right mind will invest more than 10^45 ETH.
+        // the whole world GDP is at 29 Billion ETH, which is 1.9 * 10 ^ 10.
+        _ethAmount = bound(_ethAmount, 1, 10**45);
+        vm.deal(address(this), _ethAmount);
+        exchange.buyTokens{value: _ethAmount}();
+    }
+
+    function test_buy_MaxValue() public {
+        vm.deal(address(this), 10**45);
+        exchange.buyTokens{value: 10**45}();
+    }
+
+    function test_sell_maxValue() public {
+        vm.deal(address(this), 10**45);
+        exchange.buyTokens{value: 10**45}();
+        uint256 balance = erc20.balanceOf(address(this));
+        vm.expectRevert(LaunchboxExchange.ExchangeInactive.selector);
+        exchange.sellTokens(balance);
+    }
+
+    function test_buy_minValue() public {
+        assertEq(erc20.balanceOf(address(this)), 0);
+        exchange.buyTokens{value: 1}();
+        assertNotEq(erc20.balanceOf(address(this)), 0);
+    }
+
+    function test_sell_minValue() public {
+        exchange.buyTokens{value: 1}();
+
+        assertNotEq(erc20.balanceOf(address(this)), 0);
+        erc20.approve(address(exchange), type(uint256).max);
+        exchange.sellTokens(erc20.balanceOf(address(this)));
+        assertEq(erc20.balanceOf(address(this)), 0);
+    }
+
+    function test_sell_fuzz(uint256 _ethAmount,uint256 _tokenSellAmount) public {
+        _ethAmount = bound(_ethAmount, 1, 10**45);
+        _tokenSellAmount = bound(_tokenSellAmount, 1, 10**45);
+        vm.deal(address(this), _ethAmount);
+        exchange.buyTokens{value: _ethAmount}();
+
+        // sell
+        erc20.approve(address(exchange), _tokenSellAmount);
+        if(exchange.marketCap() > marketCapThreshold) {
+            vm.expectRevert(LaunchboxExchange.ExchangeInactive.selector);
+            exchange.sellTokens(_tokenSellAmount);
+        } else {
+            if(_tokenSellAmount > erc20.balanceOf(address(this))) {
+                vm.expectRevert();
+            }
+            exchange.sellTokens(_tokenSellAmount);
+        }
     }
 
     receive() external payable {}
