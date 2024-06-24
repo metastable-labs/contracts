@@ -74,7 +74,7 @@ contract LaunchboxExchangeUnit_Fork is LaunchboxExchangeBase {
     }
 
     function test_tokenPriceinETH() public {
-        assertEq(exchange.getTokenPriceinETH(), (1.5 ether) * 10 ** 18 / totalToBeSold);
+        assertEq(exchange.getTokenPriceinETH(), ((1.5 ether) * 10 ** 18) / totalToBeSold);
     }
 
     function test_buy() public {
