@@ -130,20 +130,14 @@ contract LaunchboxExchange {
         require(_tradeFee <= FEE_DENOMINATOR, "Trade fee must be less than or equal to 100%");
         require(reserveIn > 0 && reserveOut > 0, "Reserves must be greater than 0");
 
-        // Calculate fee
-        fee = mulDiv(amountIn, _tradeFee, FEE_DENOMINATOR);
-
-        // Calculate amountInWithFee
-        uint256 amountInWithFee = amountIn - fee;
-
-        // Calculate numerator and denominator
+        uint256 amountInWithFee = mulDiv(amountIn, (FEE_DENOMINATOR - _tradeFee), FEE_DENOMINATOR);
         uint256 numerator = mulDiv(amountInWithFee, reserveOut, 1);
         uint256 denominator = reserveIn * FEE_DENOMINATOR + amountInWithFee;
 
         require(denominator > 0, "Denominator must be greater than 0");
 
-        // Calculate amountOut
         amountOut = mulDiv(numerator, FEE_DENOMINATOR, denominator);
+        fee = amountIn - amountInWithFee;
 
         return (amountOut, fee);
     }
