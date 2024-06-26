@@ -1,6 +1,6 @@
 {
     "name": "Base Deployment Config",
-    "tradeFee": "100000000000000000",
+    "tradeFee": "10",
     "aerodromeRouter": "0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43",
     "platformFeeReceiver": "0x4ea8A5d400142e2498931f72f73a3100b3a65183",
     "marketCapThreshold": "100000000000000000000000",

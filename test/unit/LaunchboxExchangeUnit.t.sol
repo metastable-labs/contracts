@@ -68,14 +68,14 @@ contract LaunchboxExchangeUnit_Fork is LaunchboxExchangeBase {
         assertEq(exchange.saleActive(), true);
         assertEq(address(exchange.aerodromeRouter()), router);
     }
-    
+
     function test_initializeWithInitialBuyWithLowEth() public {
         LaunchboxExchange exchangeImpl = new LaunchboxExchange();
         exchange = LaunchboxExchange(payable(Clones.clone(address(exchangeImpl))));
         erc20.mint(address(exchange), totalToBeSold);
         erc20.mint(protocol, platformFee);
         erc20.mint(community, communityShare);
-        (uint256 tokenAmountOut, uint256 fee) = getAmountOutWithFee(1e10,1.5 ether, totalToBeSold, tradeFee);
+        (uint256 tokenAmountOut, uint256 fee) = getAmountOutWithFee(1e10, 1.5 ether, totalToBeSold, tradeFee);
         exchange.initialize{value: 1e10}(address(erc20), feeReceiver, tradeFee, maxSupply, marketCapThreshold, router);
         assertEq(address(exchange.token()), address(erc20));
         assertEq(exchange.maxSupply(), maxSupply);
@@ -95,7 +95,7 @@ contract LaunchboxExchangeUnit_Fork is LaunchboxExchangeBase {
     }
 
     function test_tokenPriceinETH() public {
-        assertEq(exchange.getTokenPriceinETH(), (1.5 ether) * 10 ** 18 / totalToBeSold);
+        assertEq(exchange.getTokenPriceinETH(), ((1.5 ether) * 10 ** 18) / totalToBeSold);
     }
 
     function test_buy() public {
@@ -132,19 +132,19 @@ contract LaunchboxExchangeUnit_Fork is LaunchboxExchangeBase {
     function test_buy_fuzz(uint256 _ethAmount) public {
         // no one in right mind will invest more than 10^45 ETH.
         // the whole world GDP is at 29 Billion ETH, which is 1.9 * 10 ^ 10.
-        _ethAmount = bound(_ethAmount, 1, 10**45);
+        _ethAmount = bound(_ethAmount, 1, 10 ** 45);
         vm.deal(address(this), _ethAmount);
         exchange.buyTokens{value: _ethAmount}();
     }
 
     function test_buy_MaxValue() public {
-        vm.deal(address(this), 10**45);
-        exchange.buyTokens{value: 10**45}();
+        vm.deal(address(this), 10 ** 45);
+        exchange.buyTokens{value: 10 ** 45}();
     }
 
     function test_sell_maxValue() public {
-        vm.deal(address(this), 10**45);
-        exchange.buyTokens{value: 10**45}();
+        vm.deal(address(this), 10 ** 45);
+        exchange.buyTokens{value: 10 ** 45}();
         uint256 balance = erc20.balanceOf(address(this));
         vm.expectRevert(LaunchboxExchange.ExchangeInactive.selector);
         exchange.sellTokens(balance);
@@ -165,19 +165,19 @@ contract LaunchboxExchangeUnit_Fork is LaunchboxExchangeBase {
         assertEq(erc20.balanceOf(address(this)), 0);
     }
 
-    function test_sell_fuzz(uint256 _ethAmount,uint256 _tokenSellAmount) public {
-        _ethAmount = bound(_ethAmount, 1, 10**45);
-        _tokenSellAmount = bound(_tokenSellAmount, 1, 10**45);
+    function test_sell_fuzz(uint256 _ethAmount, uint256 _tokenSellAmount) public {
+        _ethAmount = bound(_ethAmount, 1, 10 ** 45);
+        _tokenSellAmount = bound(_tokenSellAmount, 1, 10 ** 45);
         vm.deal(address(this), _ethAmount);
         exchange.buyTokens{value: _ethAmount}();
 
         // sell
         erc20.approve(address(exchange), _tokenSellAmount);
-        if(exchange.marketCap() > marketCapThreshold) {
+        if (exchange.marketCap() > marketCapThreshold) {
             vm.expectRevert(LaunchboxExchange.ExchangeInactive.selector);
             exchange.sellTokens(_tokenSellAmount);
         } else {
-            if(_tokenSellAmount > erc20.balanceOf(address(this))) {
+            if (_tokenSellAmount > erc20.balanceOf(address(this))) {
                 vm.expectRevert();
             }
             exchange.sellTokens(_tokenSellAmount);
