@@ -3,7 +3,6 @@ pragma solidity ^0.8.20;
 import {LaunchboxExchangeBase, LaunchboxExchange} from "../base/LaunchboxExchange.base.sol";
 import {console} from "forge-std/console.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
-import {console} from "forge-std/console.sol";
 
 // do fork testing
 // forge test --mc LaunchboxExchangeUnit_Fork --fork-url https://base-rpc.publicnode.com
@@ -185,6 +184,33 @@ contract LaunchboxExchangeUnit_Fork is LaunchboxExchangeBase {
             }
             exchange.sellTokens(_tokenSellAmount);
         }
+    }
+
+    function test_buy_sell(uint256 _ethAmount) public {
+        // buyer 1
+        address buyer1 = makeAddr("buyer1");
+        address buyer2 = makeAddr("buyer2");
+        vm.deal(address(this), 20 ether);
+        vm.deal(buyer1, 20 ether);
+        vm.deal(buyer2, 20 ether);
+        _ethAmount = bound(_ethAmount, 1, 1 * 10 ** 18);
+        uint256 buyer2BeforeBalance = buyer2.balance;
+        // buy
+        exchange.buyTokens{value: _ethAmount}();
+        vm.prank(buyer1);
+        exchange.buyTokens{value: _ethAmount}();
+        vm.prank(buyer2);
+        exchange.buyTokens{value: _ethAmount}();
+        // tokens bought
+        uint256 buyer2TokensBought = erc20.balanceOf(buyer2);
+        // approve
+        vm.prank(buyer2);
+        erc20.approve(address(exchange), buyer2TokensBought);
+        // sell
+        vm.prank(buyer2);
+        exchange.sellTokens(buyer2TokensBought);
+        uint256 buyer2AfterSellBalance = buyer2.balance;
+        assertLt(buyer2AfterSellBalance, buyer2BeforeBalance);
     }
 
     receive() external payable {}
