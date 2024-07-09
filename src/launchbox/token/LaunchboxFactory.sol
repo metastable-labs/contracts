@@ -59,7 +59,9 @@ contract LaunchboxFactory is Ownable(msg.sender) {
         if (_platformFeePercentage + _communityAllocPercentage > HUNDRED_PERCENTAGE) {
             revert FeeGreaterThanHundred();
         }
-        if (_platformFeeReceiver == address(0)) revert EmptyPlatformFeeReceiver();
+        if (_platformFeeReceiver == address(0)) {
+            revert EmptyPlatformFeeReceiver();
+        }
 
         // set state
         platformFeeAddress = payable(_platformFeeReceiver);
@@ -89,6 +91,7 @@ contract LaunchboxFactory is Ownable(msg.sender) {
             metadataURI,
             tradeFee,
             maxSupply - (feeFromTokenSupply + communityAllocFromTokenSupply),
+            maxSupply,
             feeFromTokenSupply,
             communityAllocFromTokenSupply,
             marketCapThreshold,
@@ -127,7 +130,9 @@ contract LaunchboxFactory is Ownable(msg.sender) {
     }
 
     function setPlatformFeeAddress(address payable _platformFeeAddress) public onlyOwner {
-        if (_platformFeeAddress == address(0)) revert EmptyPlatformFeeReceiver();
+        if (_platformFeeAddress == address(0)) {
+            revert EmptyPlatformFeeReceiver();
+        }
         platformFeeAddress = _platformFeeAddress;
         emit PlatformFeeAddressUpdated(_platformFeeAddress);
     }
