@@ -44,7 +44,8 @@ contract LaunchboxExchange {
         uint256 _tradeFee,
         uint256 _maxSupply,
         uint256 _marketCapThreshold,
-        address _aerodromeRouter
+        address _aerodromeRouter,
+        address _initialBuyer
     ) external payable {
         // sale is activate once the exchange is initialized
         saleActive = true;
@@ -62,7 +63,9 @@ contract LaunchboxExchange {
         launchboxErc20Balance = token.balanceOf(address(this));
 
         if (msg.value != 0) {
-            _buy(msg.value, msg.sender);
+            // we don't need a check on initial buyer because, initial buyer will always be non-zero,
+            // as initialBuyer is supplied by LaunchboxFactory as msg.sender
+            _buy(msg.value, _initialBuyer);
         }
 
         // register initial balance
@@ -132,14 +135,14 @@ contract LaunchboxExchange {
         require(_tradeFee <= FEE_DENOMINATOR, "Trade fee must be less than or equal to 100%");
         require(reserveIn > 0 && reserveOut > 0, "Reserves must be greater than 0");
 
-        uint256 amountInWithFee = mulDiv(amountIn, (FEE_DENOMINATOR - _tradeFee), FEE_DENOMINATOR);
+        uint256 amountInWithFee = mulDiv(amountIn, (FEE_DENOMINATOR - _tradeFee), 1);
         uint256 numerator = mulDiv(amountInWithFee, reserveOut, 1);
         uint256 denominator = reserveIn * FEE_DENOMINATOR + amountInWithFee;
 
         require(denominator > 0, "Denominator must be greater than 0");
 
-        amountOut = mulDiv(numerator, FEE_DENOMINATOR, denominator);
-        fee = amountIn - amountInWithFee;
+        amountOut = mulDiv(numerator, 1, denominator);
+        fee = ((amountIn * FEE_DENOMINATOR) - amountInWithFee)/FEE_DENOMINATOR;
 
         return (amountOut, fee);
     }

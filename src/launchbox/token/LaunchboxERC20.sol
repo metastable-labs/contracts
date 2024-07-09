@@ -107,7 +107,8 @@ contract LaunchboxERC20 is ERC20Upgradeable {
             params._tradeFee,
             params._maxSupply,
             params._marketCapThreshold,
-            params._router
+            params._router,
+            params._communityTreasuryOwner
         );
         return _launchboxExchange;
     }

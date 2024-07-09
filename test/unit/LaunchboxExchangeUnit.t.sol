@@ -11,13 +11,16 @@ contract LaunchboxExchangeUnit_Fork is LaunchboxExchangeBase {
     function getAmountOutWithFee(uint256 amountIn, uint256 reserveIn, uint256 reserveOut, uint256 _tradeFee)
         internal
         pure
-        returns (uint256, uint256)
+        returns (uint256 amountOut, uint256 fee)
     {
-        require(amountIn > 0, "Amount in must be greater than 0");
-        uint256 amountInWithFee = amountIn * (1000 - _tradeFee);
+        uint256 amountInWithFee = amountIn * (10000 - _tradeFee);
         uint256 numerator = amountInWithFee * reserveOut;
-        uint256 denominator = (reserveIn * 1000) + amountInWithFee;
-        return (numerator / denominator, (amountIn * _tradeFee) / 1000);
+        uint256 denominator = reserveIn * 10000 + amountInWithFee;
+
+        amountOut = numerator/denominator;
+        fee = ((amountIn * 10000) - amountInWithFee)/10000;
+
+        return (amountOut, fee);
     }
 
     function test_revert_initializeMaxSupplyLowerThanSuppliedTokens() public {
@@ -27,7 +30,7 @@ contract LaunchboxExchangeUnit_Fork is LaunchboxExchangeBase {
         erc20.mint(protocol, platformFee);
         erc20.mint(community, communityShare);
         vm.expectRevert(LaunchboxExchange.MaxSupplyCannotBeLowerThanSuppliedTokens.selector);
-        exchange.initialize(address(erc20), feeReceiver, tradeFee, platformFee, marketCapThreshold, router);
+        exchange.initialize(address(erc20), feeReceiver, tradeFee, platformFee, marketCapThreshold, router, initialBuyer);
     }
 
     function test_initialize() public {
@@ -36,7 +39,7 @@ contract LaunchboxExchangeUnit_Fork is LaunchboxExchangeBase {
         erc20.mint(address(exchange), totalToBeSold);
         erc20.mint(protocol, platformFee);
         erc20.mint(community, communityShare);
-        exchange.initialize(address(erc20), feeReceiver, tradeFee, maxSupply, marketCapThreshold, router);
+        exchange.initialize(address(erc20), feeReceiver, tradeFee, maxSupply, marketCapThreshold, router, initialBuyer);
         assertEq(address(exchange.token()), address(erc20));
         assertEq(exchange.maxSupply(), maxSupply);
         assertEq(exchange.marketCapThreshold(), marketCapThreshold);
@@ -55,13 +58,13 @@ contract LaunchboxExchangeUnit_Fork is LaunchboxExchangeBase {
         erc20.mint(protocol, platformFee);
         erc20.mint(community, communityShare);
         (uint256 tokenAmountOut, uint256 fee) = getAmountOutWithFee(1e17, 1.5 ether, totalToBeSold, tradeFee);
-        exchange.initialize{value: 1e17}(address(erc20), feeReceiver, tradeFee, maxSupply, marketCapThreshold, router);
+        exchange.initialize{value: 1e17}(address(erc20), feeReceiver, tradeFee, maxSupply, marketCapThreshold, router, initialBuyer);
         assertEq(address(exchange.token()), address(erc20));
         assertEq(exchange.maxSupply(), maxSupply);
         assertEq(exchange.marketCapThreshold(), marketCapThreshold);
         assertEq(exchange.launchboxErc20Balance(), totalToBeSold - tokenAmountOut);
         assertEq(exchange.ethBalance(), 1e17 - fee);
-        assertEq(erc20.balanceOf(address(this)), tokenAmountOut);
+        assertEq(erc20.balanceOf(initialBuyer), tokenAmountOut);
         assertEq(feeReceiver.balance, fee);
         assertEq(exchange.tradeFee(), tradeFee);
         assertEq(exchange.feeReceiver(), feeReceiver);
@@ -76,13 +79,13 @@ contract LaunchboxExchangeUnit_Fork is LaunchboxExchangeBase {
         erc20.mint(protocol, platformFee);
         erc20.mint(community, communityShare);
         (uint256 tokenAmountOut, uint256 fee) = getAmountOutWithFee(1e10, 1.5 ether, totalToBeSold, tradeFee);
-        exchange.initialize{value: 1e10}(address(erc20), feeReceiver, tradeFee, maxSupply, marketCapThreshold, router);
+        exchange.initialize{value: 1e10}(address(erc20), feeReceiver, tradeFee, maxSupply, marketCapThreshold, router, initialBuyer);
         assertEq(address(exchange.token()), address(erc20));
         assertEq(exchange.maxSupply(), maxSupply);
         assertEq(exchange.marketCapThreshold(), marketCapThreshold);
         assertEq(exchange.launchboxErc20Balance(), totalToBeSold - tokenAmountOut);
         assertEq(exchange.ethBalance(), 1e10 - fee);
-        assertEq(erc20.balanceOf(address(this)), tokenAmountOut);
+        assertEq(erc20.balanceOf(initialBuyer), tokenAmountOut);
         assertEq(feeReceiver.balance, fee);
         assertEq(exchange.tradeFee(), tradeFee);
         assertEq(exchange.feeReceiver(), feeReceiver);
@@ -131,7 +134,7 @@ contract LaunchboxExchangeUnit_Fork is LaunchboxExchangeBase {
 
     function test_buy_fuzz(uint256 _ethAmount) public {
         // no one in right mind will invest more than 10^45 ETH.
-        // the whole world GDP is at 29 Billion ETH, which is 1.9 * 10 ^ 10.
+        // the whole world GDP is at 29 Billion ETH, which is 2.9 * 10 ^ 28.
         _ethAmount = bound(_ethAmount, 1, 10 ** 45);
         vm.deal(address(this), _ethAmount);
         exchange.buyTokens{value: _ethAmount}();

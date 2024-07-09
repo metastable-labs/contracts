@@ -19,13 +19,14 @@ contract LaunchboxExchangeBase is Test {
     uint256 public platformShare = maxSupply * platformFee / HUNDRED_PERCENTAGE;
     uint256 public communityFee = 1 * 1e18; // 1 %
     uint256 public communityShare = maxSupply * communityFee / HUNDRED_PERCENTAGE;
-    uint256 public tradeFee = 3; // 0.3%
+    uint256 public tradeFee = 10; // 0.3%
     uint256 public totalToBeSold = maxSupply - platformShare - communityShare;
     address public owner = makeAddr("owner");
     address public community = makeAddr("community");
     address public protocol = makeAddr("protocol");
     address public router = 0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43;
     address public feeReceiver = makeAddr("feeReceiver");
+    address public initialBuyer = makeAddr("initialBuyer");
 
     function setUp() public {
         LaunchboxExchange exchangeImpl = new LaunchboxExchange();
@@ -34,6 +35,6 @@ contract LaunchboxExchangeBase is Test {
         erc20.mint(address(exchange), totalToBeSold);
         erc20.mint(protocol, platformFee);
         erc20.mint(community, communityShare);
-        exchange.initialize(address(erc20), feeReceiver, tradeFee, maxSupply, marketCapThreshold, router);
+        exchange.initialize(address(erc20), feeReceiver, tradeFee, maxSupply, marketCapThreshold, router, initialBuyer);
     }
 }
