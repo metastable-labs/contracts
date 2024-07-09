@@ -259,7 +259,7 @@ contract LaunchboxExchange {
     }
 
     function _getSpotPrice() internal view returns (uint256) {
-        return ((ethBalance + 1.5 ether) * 10 ** 18) / launchboxErc20Balance;
+        return ((ethBalance + V_ETH_BALANCE) * 10 ** 18) / launchboxErc20Balance;
     }
 
     function _getWETHPrice() internal view returns (uint256) {
