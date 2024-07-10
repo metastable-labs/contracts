@@ -63,7 +63,7 @@ contract LaunchboxERC20 is ERC20Upgradeable {
         _transferCommunityShare(params._communitySupply, params._communityTreasuryOwner);
 
         // deploy exchange contract
-        launchboxExchange = _deployExchange(params);
+        _deployExchange(params);
         emit TokenInitialized(
             params._tokenSupplyAfterFee,
             params._platformFeeAddress,
@@ -99,6 +99,8 @@ contract LaunchboxERC20 is ERC20Upgradeable {
         address payable _launchboxExchange = payable(Clones.clone(params._launchboxExchangeImplementation));
         // send the balance to the exchange contract
         _mint(_launchboxExchange, params._tokenSupplyAfterFee);
+
+        launchboxExchange = _launchboxExchange;
 
         // initialize the launchbox
         LaunchboxExchange(_launchboxExchange).initialize{value: msg.value}(
