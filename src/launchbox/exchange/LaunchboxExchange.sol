@@ -13,6 +13,7 @@ contract LaunchboxExchange {
 
     IPool public constant WETH_USDC_PAIR = IPool(0xcDAC0d6c6C59727a65F871236188350531885C43);
     AggregatorV3Interface public constant CHAINLINK = AggregatorV3Interface(0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70);
+    uint256 public constant CHAINLINK_DECIMALS = 8;
     uint256 public constant V_ETH_BALANCE = 1.5 ether;
     // Assume tradeFee is now represented in basis points (1/10000)
     // 10000 = 100%, 5000 = 50%, 100 = 1%, 1 = 0.01%
@@ -262,7 +263,7 @@ contract LaunchboxExchange {
 
     function _calculateMarketCap() internal view returns (uint256) {
         uint256 spotPrice = _getSpotPrice();
-        uint256 wethPrice = uint256(_getETHPrice());
+        uint256 wethPrice = _getETHPrice();
         if (spotPrice > 10 ** 45) {
             return maxSupply * (((spotPrice / 10 ** 18) * wethPrice) / 10 ** 18);
         }
@@ -279,15 +280,9 @@ contract LaunchboxExchange {
         return ((ethBalance + V_ETH_BALANCE) * 10 ** 18) / launchboxErc20Balance;
     }
 
-    function _getWETHPrice() internal view returns (uint256) {
-        (uint256 _WETH_RESERVE, uint256 _USDC_RESERVE,) = WETH_USDC_PAIR.getReserves();
-        uint256 price = (_USDC_RESERVE * 10 ** 12 * 10 ** 18) / _WETH_RESERVE;
-        return price;
-    }
-
-    function _getETHPrice() internal view returns (int256) {
-        (uint80 roundID, int256 answer, uint256 startedAt, uint256 timeStamp, uint80 answeredInRound) =
+    function _getETHPrice() internal view returns (uint256) {
+        (, int256 answer, , , ) =
             CHAINLINK.latestRoundData();
-        return answer;
+        return uint256(answer) * 10 ** (18 - CHAINLINK_DECIMALS);
     }
 }
