@@ -5,7 +5,7 @@ import {console} from "forge-std/console.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 
 // do fork testing
-// forge test --mc LaunchboxExchangeUnit_Fork --fork-url https://base-rpc.publicnode.com
+// forge test --mc _Fork --fork-url https://base-rpc.publicnode.com
 contract LaunchboxExchangeUnit_Fork is LaunchboxExchangeBase {
     function getAmountOutWithFee(uint256 amountIn, uint256 reserveIn, uint256 reserveOut, uint256 _tradeFee)
         internal
