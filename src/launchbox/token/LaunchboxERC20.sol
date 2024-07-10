@@ -36,6 +36,7 @@ contract LaunchboxERC20 is ERC20Upgradeable {
     error MetadataEmpty();
     error CannotSellZeroTokens();
     error PlatformFeeReceiverEmpty();
+    error CannotDepositLiquidityBeforeSaleEnds();
 
     constructor() {
         _disableInitializers();
@@ -109,8 +110,31 @@ contract LaunchboxERC20 is ERC20Upgradeable {
             params._tradeFee,
             params._maxSupply,
             params._marketCapThreshold,
-            params._router
+            params._router,
+            params._communityTreasuryOwner
         );
         return _launchboxExchange;
+    }
+
+    // override function to prevent creating pool before sale ends
+    function transfer(address to, uint256 value) public virtual override returns (bool) {
+        if (
+            LaunchboxExchange(launchboxExchange).saleActive()
+                && LaunchboxExchange(launchboxExchange).calculatedPoolAddress() == to
+        ) {
+            revert CannotDepositLiquidityBeforeSaleEnds();
+        }
+        return super.transfer(to, value);
+    }
+
+    // override function to prevent creating pool before sale ends
+    function transferFrom(address from, address to, uint256 value) public virtual override returns (bool) {
+        if (
+            LaunchboxExchange(launchboxExchange).saleActive()
+                && LaunchboxExchange(launchboxExchange).calculatedPoolAddress() == to
+        ) {
+            revert CannotDepositLiquidityBeforeSaleEnds();
+        }
+        return super.transferFrom(from, to, value);
     }
 }
