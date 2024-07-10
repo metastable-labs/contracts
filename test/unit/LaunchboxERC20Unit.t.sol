@@ -18,6 +18,20 @@ contract LaunchboxERC20Unit_Fork is LaunchboxERC20Base {
     string public metadataUri = "ipfs://metadata";
     address public router = 0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43;
     address public platformFeeReceiver = makeAddr("platformFeeReceiver");
+    uint256 public zeroTradeFee = 0;
+    uint256 public platformFee = 1;
+    uint256 public communitySupply = 9;
+    uint256 public totalSupplyAfterFee = maxSupply - platformFee - communitySupply;
+    string public emptyMetadata = "";
+
+    address public emptyPlatformFeeReceier = address(0);
+    uint256 public zeroPlatformFee = 0;
+    uint256 public zeroCommunitySupply = 0;
+    uint256 public totalSupplyAfterZeroFee = maxSupply - zeroPlatformFee - zeroCommunitySupply;
+
+    uint256 public halfPlatformFee = maxSupply / 2;
+    uint256 public halfCommunitySupply = maxSupply - halfPlatformFee;
+    uint256 public totalSupplyAfterFullFee = maxSupply - halfPlatformFee - halfCommunitySupply;
 
     function test_initialize() public {
         assertEq(erc20.launchboxExchange(), address(0));
@@ -25,11 +39,11 @@ contract LaunchboxERC20Unit_Fork is LaunchboxERC20Base {
             name,
             symbol,
             metadataUri,
-            0,
+            zeroTradeFee,
+            totalSupplyAfterFee,
             maxSupply,
-            maxSupply,
-            1,
-            9,
+            platformFee,
+            communitySupply,
             marketCapThreshold,
             exchangeImplementation,
             platformFeeReceiver,
@@ -45,7 +59,8 @@ contract LaunchboxERC20Unit_Fork is LaunchboxERC20Base {
         assertEq(address(LaunchboxExchange(erc20.launchboxExchange()).token()), address(erc20));
         assertEq(LaunchboxExchange(erc20.launchboxExchange()).maxSupply(), maxSupply);
         assertEq(LaunchboxExchange(erc20.launchboxExchange()).marketCapThreshold(), marketCapThreshold);
-        assertEq(LaunchboxExchange(erc20.launchboxExchange()).launchboxErc20Balance(), maxSupply);
+        assertEq(LaunchboxExchange(erc20.launchboxExchange()).launchboxErc20Balance(), totalSupplyAfterFee);
+        assertEq(LaunchboxExchange(erc20.launchboxExchange()).maxSupply(), maxSupply);
         assertEq(LaunchboxExchange(erc20.launchboxExchange()).ethBalance(), 0);
         assertEq(LaunchboxExchange(erc20.launchboxExchange()).saleActive(), true);
     }
@@ -55,15 +70,15 @@ contract LaunchboxERC20Unit_Fork is LaunchboxERC20Base {
         LaunchboxERC20.InitializeParams memory params = LaunchboxERC20.InitializeParams(
             name,
             symbol,
-            "",
-            0,
+            emptyMetadata,
+            zeroTradeFee,
+            totalSupplyAfterZeroFee,
             maxSupply,
-            maxSupply,
-            0,
-            0,
+            zeroPlatformFee,
+            zeroCommunitySupply,
             marketCapThreshold,
             exchangeImplementation,
-            address(0),
+            emptyPlatformFeeReceier,
             router,
             address(this)
         );
@@ -77,14 +92,14 @@ contract LaunchboxERC20Unit_Fork is LaunchboxERC20Base {
             name,
             symbol,
             metadataUri,
-            0,
-            0,
+            zeroTradeFee,
+            totalSupplyAfterFullFee,
             maxSupply,
-            0,
-            0,
+            halfPlatformFee,
+            halfCommunitySupply,
             marketCapThreshold,
             exchangeImplementation,
-            address(0),
+            emptyPlatformFeeReceier,
             router,
             address(this)
         );
@@ -97,14 +112,14 @@ contract LaunchboxERC20Unit_Fork is LaunchboxERC20Base {
             name,
             symbol,
             metadataUri,
-            0,
-            100,
+            zeroTradeFee,
+            totalSupplyAfterFee,
             maxSupply,
-            1,
-            9,
+            platformFee,
+            communitySupply,
             marketCapThreshold,
             exchangeImplementation,
-            address(0),
+            emptyPlatformFeeReceier,
             router,
             address(this)
         );
@@ -116,11 +131,11 @@ contract LaunchboxERC20Unit_Fork is LaunchboxERC20Base {
             name,
             symbol,
             metadataUri,
-            0,
+            zeroTradeFee,
             maxSupply,
             maxSupply,
-            1,
-            9,
+            platformFee,
+            communitySupply,
             marketCapThreshold,
             exchangeImplementation,
             platformFeeReceiver,
