@@ -17,6 +17,7 @@ contract LaunchboxExchange {
     // Assume tradeFee is now represented in basis points (1/10000)
     // 10000 = 100%, 5000 = 50%, 100 = 1%, 1 = 0.01%
     uint256 public constant FEE_DENOMINATOR = 10_000;
+    uint256 public constant MAX_DELAY = 45 * 60;
 
     IERC20 public token;
     uint256 public maxSupply;
@@ -271,8 +272,9 @@ contract LaunchboxExchange {
     }
 
     function _getETHPrice() internal view returns (int256) {
-        (uint80 roundID, int256 answer, uint256 startedAt, uint256 timeStamp, uint80 answeredInRound) =
+        (uint80 roundID, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound) =
             CHAINLINK.latestRoundData();
+        require(updatedAt >= block.timestamp - MAX_DELAY, "Stale price");
         return answer;
     }
 }
