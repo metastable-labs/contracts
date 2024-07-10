@@ -10,7 +10,7 @@ contract LaunchboxFactoryBase is Test {
     LaunchboxFactory public launchpad;
     LaunchboxERC20 public erc20Impl;
     LaunchboxExchange public curveImpl;
-    address public mockAerodromeRouter = makeAddr("AerodromeRouter");
+    address public mockAerodromeRouter = 0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43;
     address public platformFeeReceiver = makeAddr("PlatformFeeReceiver");
     uint256 public marketCapThreshold = 1_000_000_000;
     uint256 public platfromFeePercentage = 1 * 1e18;

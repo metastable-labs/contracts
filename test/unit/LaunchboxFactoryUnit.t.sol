@@ -5,7 +5,9 @@ import {LaunchboxFactory} from "../../src/launchbox/token/LaunchboxFactory.sol";
 import {LaunchboxERC20} from "../../src/launchbox/token/LaunchboxERC20.sol";
 import {LaunchboxExchange} from "../../src/launchbox/exchange/LaunchboxExchange.sol";
 
-contract LaunchboxFactoryUnit is LaunchboxFactoryBase {
+// do fork testing
+// forge test --mc _Fork --fork-url https://base-rpc.publicnode.com
+contract LaunchboxFactoryUnit_Fork is LaunchboxFactoryBase {
     function test_DeployWithInvalidToken() public {
         vm.expectRevert(LaunchboxFactory.EmptyTokenImplementation.selector);
         LaunchboxFactory testLaunchpad = new LaunchboxFactory(
