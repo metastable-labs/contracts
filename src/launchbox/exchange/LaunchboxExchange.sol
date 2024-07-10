@@ -17,6 +17,7 @@ contract LaunchboxExchange {
     // Assume tradeFee is now represented in basis points (1/10000)
     // 10000 = 100%, 5000 = 50%, 100 = 1%, 1 = 0.01%
     uint256 public constant FEE_DENOMINATOR = 10_000;
+    uint256 public constant LIQ_SLIPPAGE = 10; // 0.1%
 
     IERC20 public token;
     uint256 public maxSupply;
@@ -25,6 +26,7 @@ contract LaunchboxExchange {
     uint256 public ethBalance;
     uint256 public tradeFee;
     address public feeReceiver;
+    address public calculatedPoolAddress;
 
     bool public saleActive;
 
@@ -76,6 +78,10 @@ contract LaunchboxExchange {
             revert MaxSupplyCannotBeLowerThanSuppliedTokens();
         }
 
+        // calculate and store pool addres
+        // passing in factory address as zero so that router can select default factory
+        calculatedPoolAddress = aerodromeRouter.poolFor(address(token), address(aerodromeRouter.weth()), false, address(0));
+
         emit ExchangeInitialized(_tokenAddress, _tradeFee, _feeReceiver, _maxSupply);
     }
 
@@ -112,13 +118,17 @@ contract LaunchboxExchange {
         // Approve router to spend tokens
         token.approve(address(aerodromeRouter), totalTokens);
 
+        // calculate minimum amount with 0.1% slippage
+        uint256 amountTokenMin = mulDiv(totalTokens, FEE_DENOMINATOR - LIQ_SLIPPAGE, FEE_DENOMINATOR);
+        uint256 amountEthMin = mulDiv(totalEth, FEE_DENOMINATOR - LIQ_SLIPPAGE, FEE_DENOMINATOR);
+
         // Add liquidity to Aerodrome
         aerodromeRouter.addLiquidityETH{value: totalEth}(
             address(token),
             false, // not stable pool
             totalTokens,
-            0, // slippage is okay
-            0, // slippage is okay
+            amountTokenMin, // 0.1% slippage
+            amountEthMin, // 0.1% slippage
             address(0xdead),
             block.timestamp
         );
@@ -260,7 +270,9 @@ contract LaunchboxExchange {
     }
 
     receive() external payable {
-        buyTokens();
+        if(saleActive) {
+            buyTokens();
+        }
     }
 
     function _getSpotPrice() internal view returns (uint256) {
