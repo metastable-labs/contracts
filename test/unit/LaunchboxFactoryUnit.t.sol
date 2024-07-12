@@ -115,14 +115,14 @@ contract LaunchboxFactoryUnit_Fork is LaunchboxFactoryBase {
     }
 
     function test_setCommunityFee() public {
-        launchpad.setCommunityPerecentage(1);
+        launchpad.setCommunityPercentage(1);
         assertEq(launchpad.communityPercentage(), 1);
     }
 
     function test_revert_setCommunityFeeNonOwner() public {
         vm.prank(makeAddr("unknown"));
         vm.expectRevert();
-        launchpad.setCommunityPerecentage(1);
+        launchpad.setCommunityPercentage(1);
         assertEq(launchpad.communityPercentage(), communityPercentage);
     }
 

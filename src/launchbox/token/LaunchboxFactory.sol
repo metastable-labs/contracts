@@ -8,7 +8,7 @@ import {LaunchboxERC20} from "./LaunchboxERC20.sol";
 contract LaunchboxFactory is Ownable(msg.sender) {
     event TokenDeployed(address tokenAddress, address launchboxExchangeAddress, address creator);
     event PlatformFeePercentageUpdated(uint256 newPlatformFee);
-    event CommunityPerecentageUpdated(uint256 newCommunityShare);
+    event CommunityPercentageUpdated(uint256 newCommunityShare);
     event PlatformFeeAddressUpdated(address newPlatformFeeReceiver);
     event MarketCapThresholdUpdated(uint256 newMarketCapThreshold);
     event TradeFeeUpdated(uint256 newTradeFee);
@@ -124,9 +124,9 @@ contract LaunchboxFactory is Ownable(msg.sender) {
         emit TradeFeeUpdated(_tradeFee);
     }
 
-    function setCommunityPerecentage(uint256 _communityPercentage) public onlyOwner {
+    function setCommunityPercentage(uint256 _communityPercentage) public onlyOwner {
         communityPercentage = _communityPercentage;
-        emit CommunityPerecentageUpdated(_communityPercentage);
+        emit CommunityPercentageUpdated(_communityPercentage);
     }
 
     function setPlatformFeeAddress(address payable _platformFeeAddress) public onlyOwner {
