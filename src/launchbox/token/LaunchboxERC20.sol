@@ -23,6 +23,7 @@ contract LaunchboxERC20 is ERC20Upgradeable {
         string _metadataURI;
         uint256 _tradeFee;
         uint256 _tokenSupplyAfterFee;
+        uint256 _maxSupply;
         uint256 _platformFee;
         uint256 _communitySupply;
         uint256 _marketCapThreshold;
@@ -35,6 +36,7 @@ contract LaunchboxERC20 is ERC20Upgradeable {
     error MetadataEmpty();
     error CannotSellZeroTokens();
     error PlatformFeeReceiverEmpty();
+    error CannotDepositLiquidityBeforeSaleEnds();
 
     constructor() {
         _disableInitializers();
@@ -62,7 +64,7 @@ contract LaunchboxERC20 is ERC20Upgradeable {
         _transferCommunityShare(params._communitySupply, params._communityTreasuryOwner);
 
         // deploy exchange contract
-        launchboxExchange = _deployExchange(params);
+        _deployExchange(params);
         emit TokenInitialized(
             params._tokenSupplyAfterFee,
             params._platformFeeAddress,
@@ -99,15 +101,40 @@ contract LaunchboxERC20 is ERC20Upgradeable {
         // send the balance to the exchange contract
         _mint(_launchboxExchange, params._tokenSupplyAfterFee);
 
+        launchboxExchange = _launchboxExchange;
+
         // initialize the launchbox
         LaunchboxExchange(_launchboxExchange).initialize{value: msg.value}(
             address(this),
             params._platformFeeAddress,
             params._tradeFee,
-            params._tokenSupplyAfterFee,
+            params._maxSupply,
             params._marketCapThreshold,
-            params._router
+            params._router,
+            params._communityTreasuryOwner
         );
         return _launchboxExchange;
+    }
+
+    // override function to prevent creating pool before sale ends
+    function transfer(address to, uint256 value) public virtual override returns (bool) {
+        if (
+            LaunchboxExchange(launchboxExchange).saleActive()
+                && LaunchboxExchange(launchboxExchange).calculatedPoolAddress() == to
+        ) {
+            revert CannotDepositLiquidityBeforeSaleEnds();
+        }
+        return super.transfer(to, value);
+    }
+
+    // override function to prevent creating pool before sale ends
+    function transferFrom(address from, address to, uint256 value) public virtual override returns (bool) {
+        if (
+            LaunchboxExchange(launchboxExchange).saleActive()
+                && LaunchboxExchange(launchboxExchange).calculatedPoolAddress() == to
+        ) {
+            revert CannotDepositLiquidityBeforeSaleEnds();
+        }
+        return super.transferFrom(from, to, value);
     }
 }

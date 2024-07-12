@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IRouter} from "@aerodrome/contracts/contracts/interfaces/IRouter.sol";
 import {IPool} from "@aerodrome/contracts/contracts/interfaces/IPool.sol";
+import {AggregatorV3Interface} from "../token/interface/IV3Aggregator.sol";
 
 contract LaunchboxExchange {
     event ExchangeInitialized(address token, uint256 tradeFee, address feeReceiver, uint256 maxSupply);
@@ -11,10 +12,15 @@ contract LaunchboxExchange {
     event TokenSell(uint256 tokenIn, uint256 ethOut, uint256 fee, address seller);
 
     IPool public constant WETH_USDC_PAIR = IPool(0xcDAC0d6c6C59727a65F871236188350531885C43);
+    AggregatorV3Interface public constant CHAINLINK = AggregatorV3Interface(0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70);
+    uint256 public constant CHAINLINK_DECIMALS = 8;
     uint256 public constant V_ETH_BALANCE = 1.5 ether;
     // Assume tradeFee is now represented in basis points (1/10000)
     // 10000 = 100%, 5000 = 50%, 100 = 1%, 1 = 0.01%
     uint256 public constant FEE_DENOMINATOR = 10_000;
+    uint256 public constant LIQ_SLIPPAGE = 10; // 0.1%
+    uint256 public constant MAX_DELAY = 45 * 60;
+    uint256 public constant MAX_DEVIATION = 20 * 1e18; // 20%
 
     IERC20 public token;
     uint256 public maxSupply;
@@ -23,6 +29,7 @@ contract LaunchboxExchange {
     uint256 public ethBalance;
     uint256 public tradeFee;
     address public feeReceiver;
+    address public calculatedPoolAddress;
 
     bool public saleActive;
 
@@ -42,7 +49,8 @@ contract LaunchboxExchange {
         uint256 _tradeFee,
         uint256 _maxSupply,
         uint256 _marketCapThreshold,
-        address _aerodromeRouter
+        address _aerodromeRouter,
+        address _initialBuyer
     ) external payable {
         // sale is activate once the exchange is initialized
         saleActive = true;
@@ -60,7 +68,9 @@ contract LaunchboxExchange {
         launchboxErc20Balance = token.balanceOf(address(this));
 
         if (msg.value != 0) {
-            _buy(msg.value, msg.sender);
+            // we don't need a check on initial buyer because, initial buyer will always be non-zero,
+            // as initialBuyer is supplied by LaunchboxFactory as msg.sender
+            _buy(msg.value, _initialBuyer);
         }
 
         // register initial balance
@@ -70,6 +80,11 @@ contract LaunchboxExchange {
         if (maxSupply < launchboxErc20Balance) {
             revert MaxSupplyCannotBeLowerThanSuppliedTokens();
         }
+
+        // calculate and store pool addres
+        // passing in factory address as zero so that router can select default factory
+        calculatedPoolAddress =
+            aerodromeRouter.poolFor(address(token), address(aerodromeRouter.weth()), false, address(0));
 
         emit ExchangeInitialized(_tokenAddress, _tradeFee, _feeReceiver, _maxSupply);
     }
@@ -107,13 +122,17 @@ contract LaunchboxExchange {
         // Approve router to spend tokens
         token.approve(address(aerodromeRouter), totalTokens);
 
+        // calculate minimum amount with 0.1% slippage
+        uint256 amountTokenMin = mulDiv(totalTokens, FEE_DENOMINATOR - LIQ_SLIPPAGE, FEE_DENOMINATOR);
+        uint256 amountEthMin = mulDiv(totalEth, FEE_DENOMINATOR - LIQ_SLIPPAGE, FEE_DENOMINATOR);
+
         // Add liquidity to Aerodrome
         aerodromeRouter.addLiquidityETH{value: totalEth}(
             address(token),
             false, // not stable pool
             totalTokens,
-            0, // slippage is okay
-            0, // slippage is okay
+            amountTokenMin, // 0.1% slippage
+            amountEthMin, // 0.1% slippage
             address(0xdead),
             block.timestamp
         );
@@ -130,14 +149,14 @@ contract LaunchboxExchange {
         require(_tradeFee <= FEE_DENOMINATOR, "Trade fee must be less than or equal to 100%");
         require(reserveIn > 0 && reserveOut > 0, "Reserves must be greater than 0");
 
-        uint256 amountInWithFee = mulDiv(amountIn, (FEE_DENOMINATOR - _tradeFee), FEE_DENOMINATOR);
+        uint256 amountInWithFee = mulDiv(amountIn, (FEE_DENOMINATOR - _tradeFee), 1);
         uint256 numerator = mulDiv(amountInWithFee, reserveOut, 1);
         uint256 denominator = reserveIn * FEE_DENOMINATOR + amountInWithFee;
 
         require(denominator > 0, "Denominator must be greater than 0");
 
-        amountOut = mulDiv(numerator, FEE_DENOMINATOR, denominator);
-        fee = amountIn - amountInWithFee;
+        amountOut = mulDiv(numerator, 1, denominator);
+        fee = ((amountIn * FEE_DENOMINATOR) - amountInWithFee) / FEE_DENOMINATOR;
 
         return (amountOut, fee);
     }
@@ -247,7 +266,7 @@ contract LaunchboxExchange {
 
     function _calculateMarketCap() internal view returns (uint256) {
         uint256 spotPrice = _getSpotPrice();
-        uint256 wethPrice = _getWETHPrice();
+        uint256 wethPrice = _getETHPrice();
         if (spotPrice > 10 ** 45) {
             return maxSupply * (((spotPrice / 10 ** 18) * wethPrice) / 10 ** 18);
         }
@@ -255,16 +274,53 @@ contract LaunchboxExchange {
     }
 
     receive() external payable {
-        buyTokens();
+        if (saleActive) {
+            buyTokens();
+        }
     }
 
     function _getSpotPrice() internal view returns (uint256) {
-        return ((ethBalance + 1.5 ether) * 10 ** 18) / launchboxErc20Balance;
+        return ((ethBalance + V_ETH_BALANCE) * 10 ** 18) / launchboxErc20Balance;
+    }
+
+    function _getETHPrice() internal view returns (uint256) {
+        (, int256 answer, , uint256 updatedAt, ) =
+            CHAINLINK.latestRoundData();
+
+        require(answer > 0, "Invalid answer");
+
+        uint256 oraclePrice = uint256(answer) * 10 ** (18 - CHAINLINK_DECIMALS);
+
+        if(updatedAt < block.timestamp - MAX_DELAY) { // Stale chainlink price so use pool price
+
+            uint256 poolSpotPrice = _getWETHPrice();
+
+            uint256 deviation = _getPercentageDiff(oraclePrice, poolSpotPrice);
+
+            require(deviation <= MAX_DEVIATION, "Deviation too large");
+
+            return poolSpotPrice;
+        }
+
+        return oraclePrice;
     }
 
     function _getWETHPrice() internal view returns (uint256) {
         (uint256 _WETH_RESERVE, uint256 _USDC_RESERVE,) = WETH_USDC_PAIR.getReserves();
         uint256 price = (_USDC_RESERVE * 10 ** 12 * 10 ** 18) / _WETH_RESERVE;
         return price;
+    }
+
+    function _getPercentageDiff(uint256 a, uint256 b) internal view returns (uint256) {
+        if (a >= b) {
+            uint256 diff = a - b;
+            uint256 percentageDiff = 100 * 1e18 * diff / b;
+            return percentageDiff;
+        }
+        else {
+            uint256 diff = b - a;
+            uint256 percentageDiff = 100 * 1e18 * diff / a;
+            return percentageDiff;
+        }
     }
 }

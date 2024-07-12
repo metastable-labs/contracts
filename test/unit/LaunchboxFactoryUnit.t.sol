@@ -5,7 +5,9 @@ import {LaunchboxFactory} from "../../src/launchbox/token/LaunchboxFactory.sol";
 import {LaunchboxERC20} from "../../src/launchbox/token/LaunchboxERC20.sol";
 import {LaunchboxExchange} from "../../src/launchbox/exchange/LaunchboxExchange.sol";
 
-contract LaunchboxFactoryUnit is LaunchboxFactoryBase {
+// do fork testing
+// forge test --mc _Fork --fork-url https://base-rpc.publicnode.com
+contract LaunchboxFactoryUnit_Fork is LaunchboxFactoryBase {
     function test_DeployWithInvalidToken() public {
         vm.expectRevert(LaunchboxFactory.EmptyTokenImplementation.selector);
         LaunchboxFactory testLaunchpad = new LaunchboxFactory(
@@ -113,14 +115,14 @@ contract LaunchboxFactoryUnit is LaunchboxFactoryBase {
     }
 
     function test_setCommunityFee() public {
-        launchpad.setCommunityPerecentage(1);
+        launchpad.setCommunityPercentage(1);
         assertEq(launchpad.communityPercentage(), 1);
     }
 
     function test_revert_setCommunityFeeNonOwner() public {
         vm.prank(makeAddr("unknown"));
         vm.expectRevert();
-        launchpad.setCommunityPerecentage(1);
+        launchpad.setCommunityPercentage(1);
         assertEq(launchpad.communityPercentage(), communityPercentage);
     }
 
