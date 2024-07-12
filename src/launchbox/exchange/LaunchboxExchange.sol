@@ -20,6 +20,7 @@ contract LaunchboxExchange {
     uint256 public constant FEE_DENOMINATOR = 10_000;
     uint256 public constant LIQ_SLIPPAGE = 10; // 0.1%
     uint256 public constant MAX_DELAY = 45 * 60;
+    uint256 public constant MAX_DEVIATION = 20 * 1e18; // 20%
 
     IERC20 public token;
     uint256 public maxSupply;
@@ -265,7 +266,7 @@ contract LaunchboxExchange {
 
     function _calculateMarketCap() internal view returns (uint256) {
         uint256 spotPrice = _getSpotPrice();
-        uint256 wethPrice = uint256(_getETHPrice());
+        uint256 wethPrice = _getETHPrice();
         if (spotPrice > 10 ** 45) {
             return maxSupply * (((spotPrice / 10 ** 18) * wethPrice) / 10 ** 18);
         }
@@ -282,16 +283,44 @@ contract LaunchboxExchange {
         return ((ethBalance + V_ETH_BALANCE) * 10 ** 18) / launchboxErc20Balance;
     }
 
+    function _getETHPrice() internal view returns (uint256) {
+        (, int256 answer, , uint256 updatedAt, ) =
+            CHAINLINK.latestRoundData();
+
+        require(answer > 0, "Invalid answer");
+
+        uint256 oraclePrice = uint256(answer) * 10 ** (18 - CHAINLINK_DECIMALS);
+
+        if(updatedAt < block.timestamp - MAX_DELAY) { // Stale chainlink price so use pool price
+
+            uint256 poolSpotPrice = _getWETHPrice();
+
+            uint256 deviation = _getPercentageDiff(oraclePrice, poolSpotPrice);
+
+            require(deviation <= MAX_DEVIATION, "Deviation too large");
+
+            return poolSpotPrice;
+        }
+
+        return oraclePrice;
+    }
+
     function _getWETHPrice() internal view returns (uint256) {
         (uint256 _WETH_RESERVE, uint256 _USDC_RESERVE,) = WETH_USDC_PAIR.getReserves();
         uint256 price = (_USDC_RESERVE * 10 ** 12 * 10 ** 18) / _WETH_RESERVE;
         return price;
     }
 
-    function _getETHPrice() internal view returns (int256) {
-        (uint80 roundID, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound) =
-            CHAINLINK.latestRoundData();
-        require(updatedAt >= block.timestamp - MAX_DELAY, "Stale price");
-        return uint256(answer) * 10 ** (18 - CHAINLINK_DECIMALS);
+    function _getPercentageDiff(uint256 a, uint256 b) internal view returns (uint256) {
+        if (a >= b) {
+            uint256 diff = a - b;
+            uint256 percentageDiff = 100 * 1e18 * diff / b;
+            return percentageDiff;
+        }
+        else {
+            uint256 diff = b - a;
+            uint256 percentageDiff = 100 * 1e18 * diff / a;
+            return percentageDiff;
+        }
     }
 }
