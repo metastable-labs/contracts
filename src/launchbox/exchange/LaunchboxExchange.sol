@@ -7,12 +7,24 @@ import {IPool} from "@aerodrome/contracts/contracts/interfaces/IPool.sol";
 import {AggregatorV3Interface} from "../token/interface/IV3Aggregator.sol";
 
 contract LaunchboxExchange {
-    event ExchangeInitialized(address token, uint256 tradeFee, address feeReceiver, uint256 maxSupply);
+    event ExchangeInitialized(
+        address token,
+        uint256 tradeFee,
+        address feeReceiver,
+        uint256 maxSupply
+    );
     event TokenBuy(uint256 ethIn, uint256 tokenOut, uint256 fee, address buyer);
-    event TokenSell(uint256 tokenIn, uint256 ethOut, uint256 fee, address seller);
+    event TokenSell(
+        uint256 tokenIn,
+        uint256 ethOut,
+        uint256 fee,
+        address seller
+    );
 
-    IPool public constant WETH_USDC_PAIR = IPool(0xcDAC0d6c6C59727a65F871236188350531885C43);
-    AggregatorV3Interface public constant CHAINLINK = AggregatorV3Interface(0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70);
+    IPool public constant WETH_USDC_PAIR =
+        IPool(0xcDAC0d6c6C59727a65F871236188350531885C43);
+    AggregatorV3Interface public constant CHAINLINK =
+        AggregatorV3Interface(0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70);
     uint256 public constant CHAINLINK_DECIMALS = 8;
     uint256 public constant V_ETH_BALANCE = 1.5 ether;
     // Assume tradeFee is now represented in basis points (1/10000)
@@ -83,10 +95,19 @@ contract LaunchboxExchange {
 
         // calculate and store pool addres
         // passing in factory address as zero so that router can select default factory
-        calculatedPoolAddress =
-            aerodromeRouter.poolFor(address(token), address(aerodromeRouter.weth()), false, address(0));
+        calculatedPoolAddress = aerodromeRouter.poolFor(
+            address(token),
+            address(aerodromeRouter.weth()),
+            false,
+            address(0)
+        );
 
-        emit ExchangeInitialized(_tokenAddress, _tradeFee, _feeReceiver, _maxSupply);
+        emit ExchangeInitialized(
+            _tokenAddress,
+            _tradeFee,
+            _feeReceiver,
+            _maxSupply
+        );
     }
 
     function buyTokens() public payable {
@@ -123,8 +144,16 @@ contract LaunchboxExchange {
         token.approve(address(aerodromeRouter), totalTokens);
 
         // calculate minimum amount with 0.1% slippage
-        uint256 amountTokenMin = mulDiv(totalTokens, FEE_DENOMINATOR - LIQ_SLIPPAGE, FEE_DENOMINATOR);
-        uint256 amountEthMin = mulDiv(totalEth, FEE_DENOMINATOR - LIQ_SLIPPAGE, FEE_DENOMINATOR);
+        uint256 amountTokenMin = mulDiv(
+            totalTokens,
+            FEE_DENOMINATOR - LIQ_SLIPPAGE,
+            FEE_DENOMINATOR
+        );
+        uint256 amountEthMin = mulDiv(
+            totalEth,
+            FEE_DENOMINATOR - LIQ_SLIPPAGE,
+            FEE_DENOMINATOR
+        );
 
         // Add liquidity to Aerodrome
         aerodromeRouter.addLiquidityETH{value: totalEth}(
@@ -140,29 +169,46 @@ contract LaunchboxExchange {
         emit BondingEnded(totalEth, totalTokens);
     }
 
-    function getAmountOutWithFee(uint256 amountIn, uint256 reserveIn, uint256 reserveOut, uint256 _tradeFee)
-        internal
-        pure
-        returns (uint256 amountOut, uint256 fee)
-    {
+    function getAmountOutWithFee(
+        uint256 amountIn,
+        uint256 reserveIn,
+        uint256 reserveOut,
+        uint256 _tradeFee
+    ) internal pure returns (uint256 amountOut, uint256 fee) {
         require(amountIn > 0, "Amount in must be greater than 0");
-        require(_tradeFee <= FEE_DENOMINATOR, "Trade fee must be less than or equal to 100%");
-        require(reserveIn > 0 && reserveOut > 0, "Reserves must be greater than 0");
+        require(
+            _tradeFee <= FEE_DENOMINATOR,
+            "Trade fee must be less than or equal to 100%"
+        );
+        require(
+            reserveIn > 0 && reserveOut > 0,
+            "Reserves must be greater than 0"
+        );
 
-        uint256 amountInWithFee = mulDiv(amountIn, (FEE_DENOMINATOR - _tradeFee), 1);
+        uint256 amountInWithFee = mulDiv(
+            amountIn,
+            (FEE_DENOMINATOR - _tradeFee),
+            1
+        );
         uint256 numerator = mulDiv(amountInWithFee, reserveOut, 1);
         uint256 denominator = reserveIn * FEE_DENOMINATOR + amountInWithFee;
 
         require(denominator > 0, "Denominator must be greater than 0");
 
         amountOut = mulDiv(numerator, 1, denominator);
-        fee = ((amountIn * FEE_DENOMINATOR) - amountInWithFee) / FEE_DENOMINATOR;
+        fee =
+            ((amountIn * FEE_DENOMINATOR) - amountInWithFee) /
+            FEE_DENOMINATOR;
 
         return (amountOut, fee);
     }
 
     // Helper function for safe multiplication and division
-    function mulDiv(uint256 x, uint256 y, uint256 denominator) internal pure returns (uint256 result) {
+    function mulDiv(
+        uint256 x,
+        uint256 y,
+        uint256 denominator
+    ) internal pure returns (uint256 result) {
         uint256 prod0;
         uint256 prod1;
         assembly {
@@ -215,24 +261,42 @@ contract LaunchboxExchange {
         return result;
     }
 
-    function calculatePurchaseTokenOut(uint256 amountETHIn) public view returns (uint256, uint256) {
+    function calculatePurchaseTokenOut(
+        uint256 amountETHIn
+    ) public view returns (uint256, uint256) {
         uint256 tokenSupply = launchboxErc20Balance;
-        return getAmountOutWithFee(amountETHIn, ethBalance + V_ETH_BALANCE, tokenSupply, tradeFee);
+        return
+            getAmountOutWithFee(
+                amountETHIn,
+                ethBalance + V_ETH_BALANCE,
+                tokenSupply,
+                tradeFee
+            );
     }
 
-    function calculateSaleTokenOut(uint256 amountTokenIn) public view returns (uint256, uint256) {
+    function calculateSaleTokenOut(
+        uint256 amountTokenIn
+    ) public view returns (uint256, uint256) {
         uint256 tokenSupply = launchboxErc20Balance;
-        return getAmountOutWithFee(amountTokenIn, tokenSupply, ethBalance + V_ETH_BALANCE, tradeFee);
+        return
+            getAmountOutWithFee(
+                amountTokenIn,
+                tokenSupply,
+                ethBalance + V_ETH_BALANCE,
+                tradeFee
+            );
     }
 
     function _buy(uint256 ethAmount, address receiver) internal {
         // calculate tokens to mint and fee in eth
-        (uint256 tokensToMint, uint256 feeInEth) = calculatePurchaseTokenOut(ethAmount);
+        (uint256 tokensToMint, uint256 feeInEth) = calculatePurchaseTokenOut(
+            ethAmount
+        );
         if (tokensToMint > launchboxErc20Balance) {
             revert PurchaseExceedsSupply();
         }
         if (feeInEth > 0) {
-            (bool success,) = feeReceiver.call{value: feeInEth}("");
+            (bool success, ) = feeReceiver.call{value: feeInEth}("");
             if (!success) {
                 revert FeeTransferFailed();
             }
@@ -249,10 +313,15 @@ contract LaunchboxExchange {
 
     function _sell(uint256 tokenAmount, address receiver) internal {
         // calculate eth to refund and fee in token
-        (uint256 ethToReturn, uint256 feeInToken) = calculateSaleTokenOut(tokenAmount);
+        (uint256 ethToReturn, uint256 feeInToken) = calculateSaleTokenOut(
+            tokenAmount
+        );
         ethBalance -= ethToReturn;
         launchboxErc20Balance += (tokenAmount - feeInToken);
-        require(token.transferFrom(receiver, address(this), tokenAmount), "Transfer failed");
+        require(
+            token.transferFrom(receiver, address(this), tokenAmount),
+            "Transfer failed"
+        );
         if (feeInToken > 0) {
             token.transfer(feeReceiver, feeInToken);
         }
@@ -268,7 +337,8 @@ contract LaunchboxExchange {
         uint256 spotPrice = _getSpotPrice();
         uint256 wethPrice = _getETHPrice();
         if (spotPrice > 10 ** 45) {
-            return maxSupply * (((spotPrice / 10 ** 18) * wethPrice) / 10 ** 18);
+            return
+                maxSupply * (((spotPrice / 10 ** 18) * wethPrice) / 10 ** 18);
         }
         return (maxSupply * ((spotPrice * wethPrice) / 10 ** 18)) / 10 ** 18;
     }
@@ -280,18 +350,19 @@ contract LaunchboxExchange {
     }
 
     function _getSpotPrice() internal view returns (uint256) {
-        return ((ethBalance + V_ETH_BALANCE) * 10 ** 18) / launchboxErc20Balance;
+        return
+            ((ethBalance + V_ETH_BALANCE) * 10 ** 18) / launchboxErc20Balance;
     }
 
     function _getETHPrice() internal view returns (uint256) {
-        (, int256 answer, , uint256 updatedAt, ) =
-            CHAINLINK.latestRoundData();
+        (, int256 answer, , uint256 updatedAt, ) = CHAINLINK.latestRoundData();
 
         require(answer > 0, "Invalid answer");
 
         uint256 oraclePrice = uint256(answer) * 10 ** (18 - CHAINLINK_DECIMALS);
 
-        if(updatedAt < block.timestamp - MAX_DELAY) { // Stale chainlink price so use pool price
+        if (updatedAt < block.timestamp - MAX_DELAY) {
+            // Stale chainlink price so use pool price
 
             uint256 poolSpotPrice = _getWETHPrice();
 
@@ -306,20 +377,23 @@ contract LaunchboxExchange {
     }
 
     function _getWETHPrice() internal view returns (uint256) {
-        (uint256 _WETH_RESERVE, uint256 _USDC_RESERVE,) = WETH_USDC_PAIR.getReserves();
+        (uint256 _WETH_RESERVE, uint256 _USDC_RESERVE, ) = WETH_USDC_PAIR
+            .getReserves();
         uint256 price = (_USDC_RESERVE * 10 ** 12 * 10 ** 18) / _WETH_RESERVE;
         return price;
     }
 
-    function _getPercentageDiff(uint256 a, uint256 b) internal view returns (uint256) {
+    function _getPercentageDiff(
+        uint256 a,
+        uint256 b
+    ) internal view returns (uint256) {
         if (a >= b) {
             uint256 diff = a - b;
-            uint256 percentageDiff = 100 * 1e18 * diff / b;
+            uint256 percentageDiff = (100 * 1e18 * diff) / b;
             return percentageDiff;
-        }
-        else {
+        } else {
             uint256 diff = b - a;
-            uint256 percentageDiff = 100 * 1e18 * diff / a;
+            uint256 percentageDiff = (100 * 1e18 * diff) / a;
             return percentageDiff;
         }
     }
