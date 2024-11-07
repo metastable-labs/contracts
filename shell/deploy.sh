@@ -11,7 +11,7 @@ function show_help {
 }
 
 # Define allowed networks
-allowed_networks=("base" "mode" "op", "baseSepolia")
+allowed_networks=("base" "mode" "op", "baseSepolia", "inkSepolia")
 
 # Check if no parameters were provided or help is requested
 if [ $# -eq 0 ] || [[ "$1" == "--help" ]]; then

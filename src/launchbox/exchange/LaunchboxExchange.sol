@@ -292,6 +292,6 @@ contract LaunchboxExchange {
         (uint80 roundID, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound) =
             CHAINLINK.latestRoundData();
         require(updatedAt >= block.timestamp - MAX_DELAY, "Stale price");
-        return uint256(answer) * 10 ** (18 - CHAINLINK_DECIMALS);
+        return answer;
     }
 }

@@ -10,6 +10,7 @@ cbor_metadata = false
 evm_version = "paris"
 optimizer = true
 optimizer_runs = 1_000_000
+solc = "0.8.26"CD
 
 [etherscan]
 base-sepolia = {key = "$ETHERSCAN_API_KEY", url = "https://api-sepolia.basescan.org/api"}
